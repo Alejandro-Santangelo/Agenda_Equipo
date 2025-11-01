@@ -156,16 +156,6 @@ export default function LoginScreen() {
                 <span>Iniciar Sesión</span>
               )}
             </button>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm font-medium text-blue-800 mb-2">Credenciales del equipo:</p>
-              <div className="text-xs text-blue-700 space-y-1">
-                <div><strong>paula@equipo.com:</strong> 1111 (Administradora)</div>
-                <div><strong>gabi@equipo.com:</strong> 3333 (Miembro)</div>
-                <div><strong>caro@equipo.com:</strong> 2222 (Miembro)</div>
-              </div>
-            </div>
           </form>
         </div>
 
