@@ -1,0 +1,76 @@
+{
+  "name": "Agenda Equipo",
+  "short_name": "AgendaEquipo",
+  "description": "Aplicación colaborativa para Paula, Gabi y Caro - Comparte archivos, chat y gestión de equipo",
+  "start_url": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#fdf2f8",
+  "theme_color": "#ec4899",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "scope": "/",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Tareas",
+      "short_name": "Tareas",
+      "description": "Gestionar tareas del equipo",
+      "url": "/?tab=tasks",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Calendario",
+      "short_name": "Calendario",
+      "description": "Ver eventos y calendario",
+      "url": "/?tab=calendar",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Archivos",
+      "short_name": "Archivos",
+      "description": "Ver archivos compartidos",
+      "url": "/?tab=files",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Chat",
+      "short_name": "Chat", 
+      "description": "Abrir chat del equipo",
+      "url": "/?tab=chat",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot2.png", 
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

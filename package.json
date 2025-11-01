@@ -1,0 +1,55 @@
+{
+  "name": "agenda-equipo",
+  "version": "1.0.0",
+  "description": "Aplicación colaborativa PWA para gestión de equipo con tareas, calendario, chat y archivos",
+  "keywords": ["pwa", "react", "nextjs", "collaboration", "team-management", "agenda", "tasks", "calendar"],
+  "author": "Paula, Gabi & Caro",
+  "license": "MIT",
+  "homepage": "https://agenda-equipo.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/agenda-equipo.git"
+  },
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "type-check": "tsc --noEmit",
+    "build:analyze": "ANALYZE=true npm run build",
+    "clean": "rm -rf .next out dist"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.78.0",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.2",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.552.0",
+    "next": "16.0.1",
+    "next-pwa": "^5.6.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-dropzone": "^14.3.8",
+    "react-hot-toast": "^2.6.0",
+    "tailwind-merge": "^3.3.1",
+    "workbox-webpack-plugin": "^7.3.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}
