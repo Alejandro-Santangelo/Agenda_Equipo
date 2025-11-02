@@ -4,7 +4,7 @@ import React from 'react'
 import { useAppStore } from '@/lib/store'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useAuth } from '@/hooks/useAuth'
-import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare } from 'lucide-react'
+import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare, ArrowLeft } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 
 interface MainLayoutProps {
@@ -94,9 +94,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-pink-100 transition-colors"
+              className="lg:hidden p-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 transition-colors shadow-md"
             >
-              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMobileMenuOpen ? <X size={22} color="white" strokeWidth={2.5} /> : <Menu size={22} color="white" strokeWidth={2.5} />}
             </button>
           </div>
         </div>
@@ -180,6 +180,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6">
+          {/* Mobile Back Button - Solo visible en móviles y cuando no estamos en archivos */}
+          {activeTab !== 'files' && (
+            <div className="lg:hidden mb-4">
+              <button
+                onClick={() => setActiveTab('files')}
+                className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors shadow-md"
+              >
+                <ArrowLeft size={18} strokeWidth={2.5} />
+                <span className="font-medium">Volver al Inicio</span>
+              </button>
+            </div>
+          )}
           {children}
         </main>
       </div>
