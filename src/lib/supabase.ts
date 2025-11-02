@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Configuración segura que funciona tanto con credenciales reales como en modo offline
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://localhost:3000'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'offline-mode-key'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rvgrrbquevzfuyhekbfr.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2Z3JyYnF1ZXZ6ZnV5aGVrYmZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODk5MDAsImV4cCI6MjA3NzY2NTkwMH0.GIjnZZ7xkZyyn3Nml5EiFp2m8XxIMdPOfi1uJDdn1nY'
 
 // Solo crear cliente real si tenemos credenciales válidas
 export const supabase = (supabaseUrl.includes('supabase.co') && supabaseAnonKey !== 'offline-mode-key') 
