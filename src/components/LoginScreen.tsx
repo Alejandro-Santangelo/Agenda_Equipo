@@ -1,6 +1,6 @@
 'use client'
 
-// Force deploy - 2025-11-02
+// Force Vercel deploy - 2025-11-02 v2
 import { useState, useEffect } from 'react'
 import { Mail, Lock, Eye, EyeOff, User, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'

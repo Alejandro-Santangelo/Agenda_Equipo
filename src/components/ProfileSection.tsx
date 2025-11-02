@@ -66,6 +66,8 @@ export default function ProfileSection() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    console.log('🔍 TESTING: Archivo seleccionado:', file.name, file.size, 'bytes')
+
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
       toast.error('❌ Por favor selecciona una imagen válida (JPG, PNG, GIF, etc.)')
@@ -225,11 +227,15 @@ export default function ProfileSection() {
       let avatarUrl = currentUser.avatar_url
 
       // Subir nueva foto si hay una seleccionada
-      if (avatarFile && isOnline) {
+      if (avatarFile) {
+        console.log('🔍 TESTING: Intentando subir avatar:', avatarFile.name, 'Online:', isOnline)
         const uploadedUrl = await uploadAvatar(avatarFile)
         if (uploadedUrl) {
           avatarUrl = uploadedUrl
+          console.log('✅ TESTING: Avatar subido exitosamente:', uploadedUrl)
+          toast.success('📷 Foto de perfil actualizada correctamente')
         } else {
+          console.log('❌ TESTING: Error al subir avatar')
           toast.error('Error al subir la foto. Los demás cambios se guardarán.')
         }
       }
