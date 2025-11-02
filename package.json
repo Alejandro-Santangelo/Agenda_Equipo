@@ -1,6 +1,6 @@
 {
   "name": "agenda-equipo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Aplicación colaborativa PWA para gestión de equipo con tareas, calendario, chat y archivos",
   "keywords": [
     "pwa",

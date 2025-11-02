@@ -1,5 +1,6 @@
 'use client'
 
+// Updated 2025-11-02 - Avatar fixes deployed
 import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { useAppStore } from '@/lib/store'
