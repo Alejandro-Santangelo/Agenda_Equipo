@@ -186,16 +186,16 @@ export function MobileOptimizer() {
       optimizeMobileExperience()
     }
     
-    // Configurar service worker para PWA
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('✅ Service Worker registrado:', registration)
-        })
-        .catch((error) => {
-          console.log('❌ Error registrando Service Worker:', error)
-        })
-    }
+    // Configurar service worker para PWA - TEMPORALMENTE DESHABILITADO
+    // if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    //   navigator.serviceWorker.register('/sw.js')
+    //     .then((registration) => {
+    //       console.log('✅ Service Worker registrado:', registration)
+    //     })
+    //     .catch((error) => {
+    //       console.log('❌ Error registrando Service Worker:', error)
+    //     })
+    // }
     
   }, [])
 

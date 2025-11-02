@@ -182,14 +182,26 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <main className="flex-1 p-4 lg:p-6">
           {/* Back Button - Visible en todos los dispositivos cuando no estamos en Archivos */}
           {activeTab !== 'files' && (
-            <div className="mb-6 border-b border-pink-200 pb-4">
+            <div className="mb-6 border-b border-pink-200 pb-4" data-testid="back-button-container">
               <button
-                onClick={() => setActiveTab('files')}
+                onClick={() => {
+                  console.log('🔴 BOTÓN VOLVER CLICKEADO - Tab actual:', activeTab)
+                  setActiveTab('files')
+                }}
                 className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg text-lg font-bold"
+                data-testid="back-button"
+                style={{ minHeight: '50px', backgroundColor: '#ec4899' }} // Fallback styles
               >
                 <ArrowLeft size={24} strokeWidth={3} />
                 <span>← VOLVER AL INICIO</span>
               </button>
+            </div>
+          )}
+
+          {/* Debug Info - Solo en desarrollo */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
+              🐛 Debug: activeTab = &quot;{activeTab}&quot; | shouldShowButton = {String(activeTab !== 'files')}
             </div>
           )}
           

@@ -116,6 +116,7 @@ export default function LoginScreen() {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                   placeholder="Ingresa tu contraseña"
+                  autoComplete="current-password"
                   disabled={loading || loginAttempts >= MAX_ATTEMPTS}
                 />
                 <button
