@@ -4,8 +4,10 @@ import React from 'react'
 import { useAppStore } from '@/lib/store'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useAuth } from '@/hooks/useAuth'
-import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare, ArrowLeft } from 'lucide-react'
+import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
+import BackToHomeButton from './BackToHomeButton'
+import AlwaysVisibleBackButton from './AlwaysVisibleBackButton'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -180,23 +182,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6">
-          {/* Back Button - Visible en todos los dispositivos cuando no estamos en Archivos */}
-          {activeTab !== 'files' && (
-            <div className="mb-6 border-b border-pink-200 pb-4" data-testid="back-button-container">
-              <button
-                onClick={() => {
-                  console.log('🔴 BOTÓN VOLVER CLICKEADO - Tab actual:', activeTab)
-                  setActiveTab('files')
-                }}
-                className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg text-lg font-bold"
-                data-testid="back-button"
-                style={{ minHeight: '50px', backgroundColor: '#ec4899' }} // Fallback styles
-              >
-                <ArrowLeft size={24} strokeWidth={3} />
-                <span>← VOLVER AL INICIO</span>
-              </button>
-            </div>
-          )}
+          {/* Back Button - Componente separado para evitar hidratación */}
+          <BackToHomeButton />
+          
+          {/* Debug Button - SIEMPRE VISIBLE para testing en Vercel */}
+          <AlwaysVisibleBackButton />
 
           {/* Debug Info - Solo en desarrollo */}
           {process.env.NODE_ENV === 'development' && (
