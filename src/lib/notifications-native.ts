@@ -178,38 +178,166 @@ export const notifyNewMemberNative = (memberData: {
 // 🔧 UTILIDADES ADICIONALES
 // =============================================================================
 
-// Función para notificaciones de tareas (futuro)
+// =============================================================================
+// 📋 NOTIFICACIONES DE TAREAS
+// =============================================================================
+
 export const notifyTaskAssignedNative = (data: {
-  memberEmail: string;
-  memberPhone?: string;
+  recipients: Array<{
+    name: string;
+    email: string;
+    phone?: string;
+  }>;
   taskTitle: string;
+  taskDescription?: string;
   assignedBy: string;
+  dueDate?: string;
 }) => {
-  const subject = `📋 Nueva tarea asignada: ${data.taskTitle}`;
-  const emailBody = `Hola,
+  console.log('📋 Enviando notificaciones de tarea asignada a:', data.recipients.length, 'destinatarios');
+
+  const results = {
+    email: { attempted: 0, success: 0 },
+    whatsapp: { attempted: 0, success: 0 }
+  };
+
+  data.recipients.forEach((recipient) => {
+    // 📧 Template de email para tarea asignada
+    const subject = `📋 Nueva tarea asignada: ${data.taskTitle}`;
+    const emailBody = `Hola ${recipient.name},
 
 ${data.assignedBy} te ha asignado una nueva tarea:
 
-📝 ${data.taskTitle}
+📝 **${data.taskTitle}**
+${data.taskDescription ? `\n📄 Descripción: ${data.taskDescription}` : ''}
+${data.dueDate ? `\n📅 Fecha límite: ${new Date(data.dueDate).toLocaleDateString('es-AR')}` : ''}
 
-Puedes verla en: ${APP_URL}
+🔗 Ver detalles: ${APP_URL}
 
-¡Saludos!`;
+¡Éxitos con la tarea!
 
-  const whatsappMessage = `📋 *Nueva tarea asignada*
+---
+Este es un recordatorio automático del sistema de gestión de tareas del equipo.`;
 
-${data.assignedBy} te asignó: *${data.taskTitle}*
+    // 📱 Template de WhatsApp para tarea asignada
+    const whatsappMessage = `📋 *Nueva tarea asignada*
 
-Ver en la app: ${APP_URL}`;
+¡Hola ${recipient.name}!
 
-  return {
-    email: () => window.open(`mailto:${data.memberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`, '_blank'),
-    whatsapp: data.memberPhone ? () => {
-      const cleanPhone = data.memberPhone!.replace(/\D/g, '');
-      const formattedPhone = cleanPhone.startsWith('54') ? cleanPhone : '54' + cleanPhone;
-      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
-    } : null
+${data.assignedBy} te asignó una nueva tarea:
+
+📝 *${data.taskTitle}*
+${data.taskDescription ? `\n📄 ${data.taskDescription}` : ''}
+${data.dueDate ? `\n📅 Vence: ${new Date(data.dueDate).toLocaleDateString('es-AR')}` : ''}
+
+🔗 Ver en la app: ${APP_URL}
+
+¡Éxitos! 💪`;
+
+    // Abrir cliente de email
+    try {
+      const mailtoUrl = `mailto:${recipient.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      window.open(mailtoUrl, '_blank');
+      results.email.attempted++;
+      results.email.success++;
+      console.log('📧 Email abierto para:', recipient.email);
+    } catch (error) {
+      console.error('❌ Error abriendo email para', recipient.email, error);
+      results.email.attempted++;
+    }
+
+    // Abrir WhatsApp si tiene número
+    if (recipient.phone && recipient.phone.trim()) {
+      try {
+        const cleanPhone = recipient.phone.replace(/\D/g, '');
+        const formattedPhone = cleanPhone.startsWith('54') ? cleanPhone : '54' + cleanPhone;
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappUrl, '_blank');
+        results.whatsapp.attempted++;
+        results.whatsapp.success++;
+        console.log('📱 WhatsApp abierto para:', formattedPhone);
+      } catch (error) {
+        console.error('❌ Error abriendo WhatsApp para', recipient.phone, error);
+        results.whatsapp.attempted++;
+      }
+    }
+  });
+
+  return results;
+};
+
+export const notifyTaskCompletedNative = (data: {
+  recipients: Array<{
+    name: string;
+    email: string;
+    phone?: string;
+  }>;
+  taskTitle: string;
+  completedBy: string;
+}) => {
+  console.log('✅ Enviando notificaciones de tarea completada a:', data.recipients.length, 'destinatarios');
+
+  const results = {
+    email: { attempted: 0, success: 0 },
+    whatsapp: { attempted: 0, success: 0 }
   };
+
+  data.recipients.forEach((recipient) => {
+    // 📧 Template de email para tarea completada
+    const subject = `✅ Tarea completada: ${data.taskTitle}`;
+    const emailBody = `Hola ${recipient.name},
+
+¡Buenas noticias! ${data.completedBy} ha completado la tarea:
+
+✅ **${data.taskTitle}**
+
+🔗 Ver detalles: ${APP_URL}
+
+¡Excelente trabajo en equipo! 🎉
+
+---
+Este es un recordatorio automático del sistema de gestión de tareas del equipo.`;
+
+    // 📱 Template de WhatsApp para tarea completada
+    const whatsappMessage = `✅ *Tarea completada*
+
+¡Hola ${recipient.name}!
+
+${data.completedBy} completó la tarea:
+
+✅ *${data.taskTitle}*
+
+🔗 Ver en la app: ${APP_URL}
+
+¡Excelente trabajo! 🎉`;
+
+    // Abrir cliente de email
+    try {
+      const mailtoUrl = `mailto:${recipient.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      window.open(mailtoUrl, '_blank');
+      results.email.attempted++;
+      results.email.success++;
+    } catch (error) {
+      console.error('❌ Error abriendo email para', recipient.email, error);
+      results.email.attempted++;
+    }
+
+    // Abrir WhatsApp si tiene número
+    if (recipient.phone && recipient.phone.trim()) {
+      try {
+        const cleanPhone = recipient.phone.replace(/\D/g, '');
+        const formattedPhone = cleanPhone.startsWith('54') ? cleanPhone : '54' + cleanPhone;
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappUrl, '_blank');
+        results.whatsapp.attempted++;
+        results.whatsapp.success++;
+      } catch (error) {
+        console.error('❌ Error abriendo WhatsApp para', recipient.phone, error);
+        results.whatsapp.attempted++;
+      }
+    }
+  });
+
+  return results;
 };
 
 // Función para validar número de teléfono

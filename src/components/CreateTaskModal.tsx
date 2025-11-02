@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Calendar, Flag } from 'lucide-react';
+import { X, Calendar, Flag, Bell } from 'lucide-react';
 import { Task, useTasks } from '@/hooks/useTasks';
+import { useAuth } from '@/hooks/useAuth';
+import NotificationSelector from './NotificationSelector';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   projectId
 }) => {
   const { addTask, updateTask } = useTasks();
+  const { currentUser, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: task?.title || '',
@@ -24,6 +27,16 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     due_date: task?.due_date || '',
     status: task?.status || 'pending'
   });
+
+  // Estados para notificaciones
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationRecipients, setNotificationRecipients] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    role: 'admin' | 'member';
+  }>>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +55,29 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         await updateTask(task.id, taskData);
       } else {
         await addTask(taskData);
+        
+        // 🔔 Enviar notificaciones solo para tareas nuevas
+        if (showNotifications && notificationRecipients.length > 0 && currentUser) {
+          try {
+            const { notifyTaskAssignedNative } = await import('@/lib/notifications-native');
+            
+            const results = notifyTaskAssignedNative({
+              recipients: notificationRecipients.map(recipient => ({
+                name: recipient.name,
+                email: recipient.email,
+                phone: recipient.phone
+              })),
+              taskTitle: formData.title,
+              taskDescription: formData.description,
+              assignedBy: currentUser.name,
+              dueDate: formData.due_date || undefined
+            });
+
+            console.log('📋 Notificaciones de tarea enviadas:', results);
+          } catch (notificationError) {
+            console.error('❌ Error enviando notificaciones:', notificationError);
+          }
+        }
       }
       
       onClose();
@@ -152,6 +188,32 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          {/* 🔔 Selector de Notificaciones */}
+          {!task && isAdmin && (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="enableNotifications"
+                  checked={showNotifications}
+                  onChange={(e) => setShowNotifications(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="enableNotifications" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
+                  <Bell className="w-4 h-4 text-blue-500" />
+                  <span>Notificar asignación de tarea</span>
+                </label>
+              </div>
+              
+              <NotificationSelector
+                isVisible={showNotifications}
+                onRecipientsChange={setNotificationRecipients}
+                notificationType="task"
+                className="ml-6"
+              />
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <button

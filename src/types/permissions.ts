@@ -3,7 +3,7 @@ export interface Permission {
   id: string
   name: string
   description: string
-  category: 'files' | 'chat' | 'team' | 'admin'
+  category: 'files' | 'chat' | 'team' | 'admin' | 'notifications'
   icon: string
 }
 
@@ -120,7 +120,44 @@ export const AVAILABLE_PERMISSIONS: Permission[] = [
     icon: '❌'
   },
 
-  // 🔧 Permisos de Administración
+  // � Permisos de Notificaciones
+  {
+    id: 'notifications.send_task',
+    name: 'Enviar Notificaciones de Tareas',
+    description: 'Puede enviar notificaciones cuando asigna/completa tareas',
+    category: 'notifications',
+    icon: '📋'
+  },
+  {
+    id: 'notifications.select_recipients',
+    name: 'Seleccionar Destinatarios',
+    description: 'Puede elegir quién recibe las notificaciones',
+    category: 'notifications',
+    icon: '🎯'
+  },
+  {
+    id: 'notifications.send_chat',
+    name: 'Notificar Mensajes Prioritarios',
+    description: 'Puede enviar notificaciones por mensajes importantes',
+    category: 'notifications',
+    icon: '💬'
+  },
+  {
+    id: 'notifications.send_events',
+    name: 'Notificar Eventos',
+    description: 'Puede enviar recordatorios de eventos y calendario',
+    category: 'notifications',
+    icon: '📅'
+  },
+  {
+    id: 'notifications.manage_settings',
+    name: 'Configurar Notificaciones',
+    description: 'Puede cambiar configuraciones globales de notificaciones',
+    category: 'notifications',
+    icon: '⚙️'
+  },
+
+  // �🔧 Permisos de Administración
   {
     id: 'admin.manage_permissions',
     name: 'Gestionar Permisos',
@@ -191,6 +228,7 @@ export const CATEGORY_LABELS = {
   files: 'Gestión de Archivos',
   chat: 'Sistema de Chat',
   team: 'Administración de Equipo', 
+  notifications: 'Sistema de Notificaciones',
   admin: 'Permisos de Administrador'
 }
 
@@ -198,5 +236,6 @@ export const CATEGORY_COLORS = {
   files: 'bg-blue-50 border-blue-200 text-blue-800',
   chat: 'bg-green-50 border-green-200 text-green-800', 
   team: 'bg-purple-50 border-purple-200 text-purple-800',
+  notifications: 'bg-orange-50 border-orange-200 text-orange-800',
   admin: 'bg-red-50 border-red-200 text-red-800'
 }
