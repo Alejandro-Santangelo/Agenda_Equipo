@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS public.team_members (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL, -- Para contraseñas simples hasheadas
   role TEXT NOT NULL CHECK (role IN ('admin', 'member')),
   avatar_url TEXT,
   permissions TEXT[] DEFAULT ARRAY[]::TEXT[],
@@ -149,21 +148,21 @@ CREATE POLICY "chat_messages_delete_policy" ON public.chat_messages
 -- ✨ PASO 5: Insertar datos iniciales del equipo
 -- =============================================================================
 
--- Insertar a Paula (Administradora) con permisos completos y contraseña 1111 (hasheada)
-INSERT INTO public.team_members (name, email, password_hash, role, avatar_url, permissions) VALUES
-('Paula', 'paula@equipo.com', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', 'admin', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Paula', 
+-- Insertar a Paula (Administradora) con permisos completos
+INSERT INTO public.team_members (name, email, role, avatar_url, permissions) VALUES
+('Paula', 'paula@equipo.com', 'admin', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Paula', 
  ARRAY['files.upload','files.share_links','files.download','files.delete_own','files.delete_any','chat.send','chat.edit_own','chat.delete_own','chat.delete_any','chat.priority','team.view_members','team.view_activity','team.invite','team.remove','admin.manage_permissions','admin.view_stats','admin.export_data','admin.system_settings'])
 ON CONFLICT (email) DO NOTHING;
 
--- Insertar a Gabi (Miembro) con permisos estándar y contraseña 3333 (hasheada)
-INSERT INTO public.team_members (name, email, password_hash, role, avatar_url, permissions) VALUES  
-('Gabi', 'gabi@equipo.com', '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', 'member', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gabi',
+-- Insertar a Gabi (Miembro) con permisos estándar
+INSERT INTO public.team_members (name, email, role, avatar_url, permissions) VALUES  
+('Gabi', 'gabi@equipo.com', 'member', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gabi',
  ARRAY['files.upload','files.share_links','files.download','files.delete_own','chat.send','chat.edit_own','chat.delete_own','team.view_members'])
 ON CONFLICT (email) DO NOTHING;
 
--- Insertar a Caro (Miembro) con permisos estándar y contraseña 2222 (hasheada)
-INSERT INTO public.team_members (name, email, password_hash, role, avatar_url, permissions) VALUES
-('Caro', 'caro@equipo.com', 'edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9', 'member', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Caro',
+-- Insertar a Caro (Miembro) con permisos estándar
+INSERT INTO public.team_members (name, email, role, avatar_url, permissions) VALUES
+('Caro', 'caro@equipo.com', 'member', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Caro',
  ARRAY['files.upload','files.share_links','files.download','files.delete_own','chat.send','chat.edit_own','chat.delete_own','team.view_members'])
 ON CONFLICT (email) DO NOTHING;
 
@@ -197,25 +196,6 @@ BEGIN
   WHERE id = file_id;
 END;
 $$ LANGUAGE plpgsql;
-
--- Función para autenticar usuarios con contraseñas simples
-CREATE OR REPLACE FUNCTION public.authenticate_user(user_email TEXT, user_password TEXT)
-RETURNS TABLE(id UUID, name TEXT, email TEXT, role TEXT, permissions TEXT[]) AS $$
-DECLARE
-  password_hash TEXT;
-BEGIN
-  -- Generar hash de la contraseña proporcionada
-  password_hash := encode(digest(user_password, 'sha256'), 'hex');
-  
-  -- Buscar usuario con email y contraseña coincidentes
-  RETURN QUERY
-  SELECT tm.id, tm.name, tm.email, tm.role, tm.permissions
-  FROM public.team_members tm
-  WHERE tm.email = user_email 
-    AND tm.password_hash = password_hash 
-    AND tm.is_active = true;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =============================================================================
 -- ✨ PASO 7: Crear vista para estadísticas

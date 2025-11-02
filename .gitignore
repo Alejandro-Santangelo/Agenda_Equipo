@@ -74,3 +74,5 @@ tmp/
 
 # ESLint cache
 .eslintcache
+
+.vercel
