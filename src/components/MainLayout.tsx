@@ -177,11 +177,57 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </button>
               )
             })}
+            
+            {/* BOTÓN DE PRUEBA EN SIDEBAR - SIEMPRE VISIBLE */}
+            <div className="mt-4 pt-4 border-t border-pink-200">
+              <div className="text-xs text-red-600 mb-2">🚨 BOTÓN DE PRUEBA:</div>
+              <button
+                onClick={() => {
+                  console.log('🔴 SIDEBAR BUTTON CLICKED - activeTab:', activeTab)
+                  setActiveTab('files')
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm font-bold"
+              >
+                🏠 IR A ARCHIVOS
+              </button>
+            </div>
           </nav>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6">
+          {/* BOTÓN SUPER SIMPLE - SIN COMPONENTES EXTERNOS */}
+          <div style={{ 
+            border: '3px solid red', 
+            padding: '20px', 
+            margin: '20px 0', 
+            backgroundColor: '#ffebee',
+            borderRadius: '8px'
+          }}>
+            <div style={{ fontSize: '12px', color: 'red', marginBottom: '10px' }}>
+              🚨 BOTÓN DE PRUEBA DIRECTO - activeTab actual: {activeTab}
+            </div>
+            <button 
+              onClick={() => {
+                console.log('🔴 DIRECT BUTTON CLICKED')
+                setActiveTab('files')
+              }}
+              style={{
+                width: '100%',
+                padding: '15px',
+                backgroundColor: '#e91e63',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              🏠 BOTÓN DIRECTO - IR A ARCHIVOS
+            </button>
+          </div>
+
           {/* Back Button - Componente separado para evitar hidratación */}
           <BackToHomeButton />
           
@@ -189,11 +235,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <AlwaysVisibleBackButton />
 
           {/* Debug Info - Solo en desarrollo */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
-              🐛 Debug: activeTab = &quot;{activeTab}&quot; | shouldShowButton = {String(activeTab !== 'files')}
-            </div>
-          )}
+          <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
+            🐛 Debug: activeTab = &quot;{activeTab}&quot; | NODE_ENV = {process.env.NODE_ENV}
+          </div>
           
           {/* Mobile Section Title */}
           <div className="lg:hidden mb-4">
