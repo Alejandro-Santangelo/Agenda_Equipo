@@ -67,24 +67,36 @@ export default function ProfileSection() {
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor selecciona una imagen válida')
+      toast.error('❌ Por favor selecciona una imagen válida (JPG, PNG, GIF, etc.)')
       return
     }
 
     // Validar tamaño (máx 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen no debe superar los 5MB')
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
+      toast.error(`❌ La imagen es muy grande (${sizeMB}MB). Máximo: 5MB`)
       return
     }
 
+    // Mostrar confirmación
+    toast.success(`📷 Imagen seleccionada: ${file.name}`)
+    
     setAvatarFile(file)
     
     // Crear preview
     const reader = new FileReader()
     reader.onload = (e) => {
-      setAvatarPreview(e.target?.result as string)
+      const result = e.target?.result as string
+      setAvatarPreview(result)
+      console.log('📸 Preview de avatar creado exitosamente')
+    }
+    reader.onerror = () => {
+      toast.error('❌ Error al procesar la imagen')
     }
     reader.readAsDataURL(file)
+    
+    // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
+    e.target.value = ''
   }
 
   const uploadAvatar = async (file: File): Promise<string | null> => {
@@ -93,19 +105,53 @@ export default function ProfileSection() {
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`
       const filePath = `avatars/${fileName}`
 
-      // Solo intentar upload si Supabase está configurado
-      if (!supabase) {
-        console.log('📱 Avatar guardado localmente - Supabase no configurado')
-        return `local-avatar-${fileName}`
+      // En modo offline, usar URL de blob local
+      if (!supabase || !isOnline) {
+        console.log('📱 Avatar guardado localmente - Modo offline')
+        
+        // Crear blob URL para uso local
+        const blobUrl = URL.createObjectURL(file)
+        
+        // Guardar referencia en localStorage para persistencia
+        try {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const base64 = reader.result as string
+            localStorage.setItem(`avatar-${currentUser.id}`, base64)
+            console.log('💾 Avatar guardado en localStorage')
+          }
+          reader.readAsDataURL(file)
+        } catch (error) {
+          console.warn('No se pudo guardar en localStorage:', error)
+        }
+        
+        return blobUrl
       }
 
+      // Upload a Supabase si está disponible
       const { error: uploadError } = await supabase.storage
         .from('team-files')
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('Error uploading avatar:', uploadError)
-        return null
+        console.error('Error uploading to Supabase:', uploadError)
+        
+        // Fallback a modo local
+        console.log('📱 Fallback: Guardando avatar localmente')
+        const blobUrl = URL.createObjectURL(file)
+        
+        try {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const base64 = reader.result as string
+            localStorage.setItem(`avatar-${currentUser.id}`, base64)
+          }
+          reader.readAsDataURL(file)
+        } catch (error) {
+          console.warn('No se pudo guardar en localStorage:', error)
+        }
+        
+        return blobUrl
       }
 
       const { data } = supabase.storage
@@ -115,7 +161,15 @@ export default function ProfileSection() {
       return data.publicUrl
     } catch (error) {
       console.error('Error in uploadAvatar:', error)
-      return null
+      
+      // Último fallback: usar blob URL
+      try {
+        const blobUrl = URL.createObjectURL(file)
+        console.log('📱 Último fallback: Usando blob URL')
+        return blobUrl
+      } catch {
+        return null
+      }
     }
   }
 
@@ -125,6 +179,13 @@ export default function ProfileSection() {
     setIsSaving(true)
 
     try {
+      // Mostrar toast informativo si hay avatar pendiente
+      if (avatarFile) {
+        toast('💾 Guardando perfil y subiendo nueva foto...', { duration: 2000 })
+      } else {
+        toast('💾 Guardando cambios del perfil...', { duration: 2000 })
+      }
+
       // Validaciones
       if (!formData.name.trim()) {
         toast.error('El nombre es requerido')
@@ -268,13 +329,26 @@ export default function ProfileSection() {
           <div className="flex flex-col items-center space-y-4">
             <div className="relative">
               {avatarPreview ? (
-                <Image
-                  src={avatarPreview}
-                  alt="Avatar"
-                  width={128}
-                  height={128}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                />
+                <div className={`relative w-32 h-32 rounded-full overflow-hidden border-4 shadow-lg transition-all ${
+                  avatarFile ? 'border-yellow-400 shadow-yellow-200' : 'border-white'
+                }`}>
+                  <Image
+                    src={avatarPreview}
+                    alt={`Avatar de ${currentUser.name}`}
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                    onError={() => {
+                      console.log('Error cargando avatar, usando fallback')
+                      setAvatarPreview(null)
+                    }}
+                  />
+                  {avatarFile && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
+                      !
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="w-32 h-32 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
                   {currentUser.name[0]}
@@ -282,12 +356,24 @@ export default function ProfileSection() {
               )}
               
               {isEditing && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors shadow-lg"
-                >
-                  <Camera size={16} />
-                </button>
+                <>
+                  {/* Botón de cámara */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-full hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg transform hover:scale-105"
+                    title="Cambiar foto de perfil"
+                  >
+                    <Camera size={18} />
+                  </button>
+                  
+                  {/* Overlay de hover */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center cursor-pointer"
+                       onClick={() => fileInputRef.current?.click()}>
+                    <div className="opacity-0 hover:opacity-100 transition-opacity duration-200 text-white text-xs font-medium">
+                      Cambiar foto
+                    </div>
+                  </div>
+                </>
               )}
             </div>
             
@@ -298,6 +384,17 @@ export default function ProfileSection() {
               onChange={handleAvatarSelect}
               className="hidden"
             />
+            
+            {avatarFile && (
+              <div className="text-center px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800 font-medium">
+                  📷 Nueva foto seleccionada
+                </p>
+                <p className="text-xs text-yellow-600 mt-1">
+                  Haz clic en &ldquo;Guardar Cambios&rdquo; para aplicar
+                </p>
+              </div>
+            )}
             
             <div className="text-center">
               <h3 className="font-semibold text-lg text-gray-900">{currentUser.name}</h3>
@@ -468,12 +565,13 @@ export default function ProfileSection() {
               {isSaving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Guardando...
+                  {avatarFile ? 'Guardando y subiendo foto...' : 'Guardando...'}
                 </>
               ) : (
                 <>
                   <Save size={16} />
-                  Guardar Cambios
+                  {avatarFile ? 'Guardar Cambios + Foto' : 'Guardar Cambios'}
+                  {avatarFile && <span className="ml-1 text-yellow-200">📷</span>}
                 </>
               )}
             </button>

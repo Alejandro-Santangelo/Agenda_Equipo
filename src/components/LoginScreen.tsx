@@ -21,6 +21,19 @@ export default function LoginScreen() {
     initialize()
   }, [initialize])
 
+  // Efecto para limpiar campos al cargar
+  useEffect(() => {
+    // Limpiar los campos DOM para prevenir autocompletado
+    const timer = setTimeout(() => {
+      const form = document.querySelector('form')
+      if (form) {
+        form.reset()
+      }
+    }, 50)
+    
+    return () => clearTimeout(timer)
+  }, [])
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (error) setError('')
@@ -78,7 +91,11 @@ export default function LoginScreen() {
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+            {/* Hidden fields to confuse browser autocomplete */}
+            <input type="text" style={{display: 'none'}} />
+            <input type="password" style={{display: 'none'}} />
+            
             {/* Email Field */}
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-gray-700 block">
@@ -96,6 +113,8 @@ export default function LoginScreen() {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                   placeholder="tu-email@equipo.com"
                   disabled={loading || loginAttempts >= MAX_ATTEMPTS}
+                  autoComplete="off"
+                  data-form-type="other"
                 />
               </div>
             </div>
@@ -116,7 +135,8 @@ export default function LoginScreen() {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                   placeholder="Ingresa tu contraseña"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  data-form-type="other"
                   disabled={loading || loginAttempts >= MAX_ATTEMPTS}
                 />
                 <button
