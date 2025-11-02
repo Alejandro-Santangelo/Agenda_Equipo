@@ -74,7 +74,7 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
     }
 
     try {
-      // Llamar a la nueva API con notificaciones automáticas
+      // Llamar a la API para crear el miembro en la base de datos
       const response = await fetch('/api/add-member', {
         method: 'POST',
         headers: {
@@ -85,26 +85,40 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
           email: formData.email.toLowerCase().trim(),
           phone: formData.phone.trim() || undefined,
           password: formData.password,
-          invitedBy: currentUser?.name || 'Administrador'
+          invitedBy: currentUser?.name || 'Administrador',
+          useNativeNotifications: true // Flag para usar notificaciones nativas
         }),
       })
 
       const result = await response.json()
       
       if (response.ok && result.success) {
-        // Mostrar resultado de notificaciones
+        // Importar y usar notificaciones nativas
+        const { notifyNewMemberNative } = await import('@/lib/notifications-native')
+        
+        // Abrir aplicaciones nativas para notificar
+        const notificationResults = notifyNewMemberNative({
+          name: formData.name.trim(),
+          email: formData.email.toLowerCase().trim(),
+          phone: formData.phone.trim() || undefined,
+          password: formData.password,
+          invitedBy: currentUser?.name || 'Administrador'
+        })
+
+        // Mostrar resultado
         let notificationStatus = ''
-        if (result.notifications.email.sent && result.notifications.whatsapp.sent) {
-          notificationStatus = ' ✅ Email y WhatsApp enviados'
-        } else if (result.notifications.email.sent) {
-          notificationStatus = ' ✅ Email enviado' + (formData.phone ? ' (WhatsApp falló)' : '')
-        } else if (result.notifications.whatsapp.sent) {
-          notificationStatus = ' ✅ WhatsApp enviado (Email falló)'
+        const emailAttempted = notificationResults.email.attempted
+        const whatsappAttempted = notificationResults.whatsapp.attempted
+        
+        if (emailAttempted && whatsappAttempted) {
+          notificationStatus = ' 📧📱 Email y WhatsApp abiertos para envío'
+        } else if (emailAttempted) {
+          notificationStatus = ' 📧 Cliente de email abierto para envío'
         } else {
-          notificationStatus = ' ⚠️ Miembro creado, pero falló el envío de notificaciones'
+          notificationStatus = ' ⚠️ Revisa las aplicaciones para enviar notificaciones'
         }
 
-        setSuccess(`${formData.name} agregada exitosamente!${notificationStatus}`)
+        setSuccess(`¡${formData.name} agregada exitosamente!${notificationStatus}`)
         
         setFormData({
           name: '',
@@ -114,12 +128,12 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
           confirmPassword: ''
         })
         
-        // Cerrar modal después de 3 segundos para mostrar el resultado
+        // Cerrar modal después de 5 segundos para dar tiempo a enviar notificaciones
         setTimeout(() => {
           onSuccess()
           onClose()
           setSuccess('')
-        }, 3000)
+        }, 5000)
       } else {
         setError(result.error || 'Error al agregar miembro')
       }
@@ -305,9 +319,10 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
             <p className="text-sm text-blue-700">
               <strong>📋 Proceso de Invitación:</strong><br />
               • El nuevo miembro será agregado como &quot;Miembro&quot;<br />
-              • Se enviará un <strong>email</strong> con las credenciales de acceso<br />
-              • Se enviará un <strong>WhatsApp</strong> (si se proporciona número)<br />
-              • Debe cambiar la contraseña desde su perfil al ingresar
+              • Se abrirá tu <strong>cliente de email</strong> para enviar credenciales<br />
+              • Se abrirá <strong>WhatsApp Web</strong> (si se proporciona número)<br />
+              • Debes enviar manualmente los mensajes generados<br />
+              • El nuevo miembro debe cambiar su contraseña al ingresar
             </p>
           </div>
 

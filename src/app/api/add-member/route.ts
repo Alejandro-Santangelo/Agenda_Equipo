@@ -15,6 +15,7 @@ interface AddMemberRequest {
   phone?: string;
   password: string;
   invitedBy: string; // Nombre de quien invita (ej: "Paula")
+  useNativeNotifications?: boolean; // Flag para usar notificaciones nativas
 }
 
 export async function POST(request: NextRequest) {
@@ -103,27 +104,32 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Nuevo miembro creado en BD:', newMember);
 
-    // 🔔 Enviar notificaciones automáticas
+    // 🔔 Preparar respuesta de notificaciones
     let notificationResults: {
       email: { success: boolean; error: unknown };
       whatsapp: { success: boolean; error: unknown };
     } = {
-      email: { success: false, error: 'No se intentó enviar' },
-      whatsapp: { success: false, error: 'No se intentó enviar' }
+      email: { success: false, error: 'Notificaciones nativas usadas desde el cliente' },
+      whatsapp: { success: false, error: 'Notificaciones nativas usadas desde el cliente' }
     };
 
-    try {
-      notificationResults = await notifyNewMember({
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        password: body.password, // Contraseña sin hashear para las notificaciones
-        invitedBy: body.invitedBy
-      });
+    // Solo enviar notificaciones automáticas si NO se usa modo nativo
+    if (!body.useNativeNotifications) {
+      try {
+        notificationResults = await notifyNewMember({
+          name: body.name,
+          email: body.email,
+          phone: body.phone,
+          password: body.password, // Contraseña sin hashear para las notificaciones
+          invitedBy: body.invitedBy
+        });
 
-      console.log('📧 Resultados de notificaciones:', notificationResults);
-    } catch (notificationError) {
-      console.error('❌ Error enviando notificaciones:', notificationError);
+        console.log('📧 Resultados de notificaciones automáticas:', notificationResults);
+      } catch (notificationError) {
+        console.error('❌ Error enviando notificaciones automáticas:', notificationError);
+      }
+    } else {
+      console.log('🔔 Usando notificaciones nativas desde el cliente');
     }
 
     // 📊 Preparar respuesta
