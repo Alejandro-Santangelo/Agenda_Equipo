@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useAppStore } from '@/lib/store'
 import { TeamMember } from '@/lib/supabase'
+import { ADMIN_PERMISSIONS, DEFAULT_MEMBER_PERMISSIONS } from '@/types/permissions'
 
 interface Profile {
   id: string
@@ -119,6 +120,14 @@ const useAuthStore = create<AuthStore>()(
               isAuthenticated: true,
               loading: false 
             })
+
+            // 🔄 SINCRONIZAR con AppStore
+            const { setCurrentUser } = useAppStore.getState()
+            const teamMember = {
+              ...localUser,
+              last_active: new Date().toISOString()
+            }
+            setCurrentUser(teamMember)
             
             console.log(`✅ Login exitoso para ${profile.name} (${profile.role})`)
             return { success: true }
@@ -140,6 +149,21 @@ const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             loading: false 
           })
+
+          // 🔄 SINCRONIZAR con AppStore  
+          const { setCurrentUser } = useAppStore.getState()
+          const teamMember = {
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            phone: profile.phone,
+            role: profile.role,
+            avatar_url: profile.avatar_url,
+            created_at: profile.created_at,
+            last_active: new Date().toISOString(),
+            permissions: profile.role === 'admin' ? ADMIN_PERMISSIONS : DEFAULT_MEMBER_PERMISSIONS
+          }
+          setCurrentUser(teamMember)
           
           console.log(`✅ Login exitoso para ${profile.name} (${profile.role})`)
           return { success: true }
