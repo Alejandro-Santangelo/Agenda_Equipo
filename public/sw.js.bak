@@ -1,0 +1,152 @@
+// Service Worker para PWA y funcionalidad offline
+const CACHE_NAME = 'agenda-equipo-v1'
+const OFFLINE_URL = '/offline.html'
+
+// Archivos a cachear inmediatamente
+const STATIC_CACHE_FILES = [
+  '/',
+  '/manifest.json',
+  '/offline.html',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
+]
+
+// Instalar Service Worker
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing...')
+  
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('[SW] Caching static files')
+        return cache.addAll(STATIC_CACHE_FILES)
+      })
+      .then(() => {
+        console.log('[SW] Installation complete')
+        return self.skipWaiting()
+      })
+  )
+})
+
+// Activar Service Worker
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating...')
+  
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter(cacheName => cacheName !== CACHE_NAME)
+            .map(cacheName => caches.delete(cacheName))
+        )
+      })
+      .then(() => {
+        console.log('[SW] Activation complete')
+        return self.clients.claim()
+      })
+  )
+})
+
+// Interceptar requests
+self.addEventListener('fetch', (event) => {
+  // Solo manejar requests HTTP/HTTPS
+  if (!(event.request.url.startsWith('http:') || event.request.url.startsWith('https:'))) {
+    return
+  }
+
+  // Estrategia Network First con fallback a cache
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Si la respuesta es válida, actualizar cache
+        if (response.status === 200) {
+          const responseClone = response.clone()
+          
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseClone)
+            })
+        }
+        
+        return response
+      })
+      .catch(() => {
+        // Si falla la network, buscar en cache
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse
+            }
+            
+            // Para páginas HTML, mostrar página offline
+            if (event.request.headers.get('accept').includes('text/html')) {
+              return caches.match(OFFLINE_URL)
+            }
+            
+            // Para otros recursos, retornar error
+            return new Response('Recurso no disponible offline', { 
+              status: 503, 
+              statusText: 'Service Unavailable' 
+            })
+          })
+      })
+  )
+})
+
+// Sincronización en background
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync:', event.tag)
+  
+  if (event.tag === 'sync-data') {
+    event.waitUntil(syncData())
+  }
+})
+
+// Push notifications
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push received:', event)
+  
+  const options = {
+    body: event.data ? event.data.text() : 'Nuevo mensaje en Agenda Equipo',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    vibrate: [200, 100, 200],
+    tag: 'agenda-notification',
+    actions: [
+      { action: 'open', title: 'Abrir App', icon: '/icon-192x192.png' },
+      { action: 'close', title: 'Cerrar', icon: '/icon-192x192.png' }
+    ]
+  }
+  
+  event.waitUntil(
+    self.registration.showNotification('Agenda Equipo', options)
+  )
+})
+
+// Manejar clicks en notifications
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification click:', event)
+  
+  event.notification.close()
+  
+  if (event.action === 'open') {
+    event.waitUntil(
+      clients.openWindow('/')
+    )
+  }
+})
+
+// Función para sincronizar datos
+async function syncData() {
+  try {
+    console.log('[SW] Starting data sync...')
+    
+    // Aquí se implementaría la lógica de sincronización
+    // con IndexedDB y el servidor
+    
+    console.log('[SW] Data sync completed')
+  } catch (error) {
+    console.error('[SW] Sync failed:', error)
+  }
+}
