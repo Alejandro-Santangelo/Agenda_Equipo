@@ -8,6 +8,7 @@ import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut
 import { Toaster } from 'react-hot-toast'
 import BackToHomeButton from './BackToHomeButton'
 import AlwaysVisibleBackButton from './AlwaysVisibleBackButton'
+import IndependentBackButton from './IndependentBackButton'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -196,6 +197,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6">
+          {/* BOTÓN INDEPENDIENTE - NO USA ZUSTAND */}
+          <IndependentBackButton />
+          
           {/* BOTÓN SUPER SIMPLE - SIN COMPONENTES EXTERNOS */}
           <div style={{ 
             border: '3px solid red', 
