@@ -22,9 +22,68 @@ export function useOfflineSync() {
     try {
       const [files, messages, members] = await Promise.all([
         offlineDB.getFiles(),
-        offlineDB.getMessages(),
+        offlineDB.getMessages(), 
         offlineDB.getMembers()
       ])
+
+      // Cargar datos iniciales si no tenemos datos offline y no hay Supabase configurado
+      if (!isSupabaseConfigured() && files.length === 0 && messages.length === 0 && members.length === 0) {
+        console.log('🎯 Inicializando datos iniciales...')
+        
+        const initialMembers = [
+          {
+            id: '1',
+            name: 'Paula',
+            email: 'paula@equipo.com',
+            role: 'admin' as const,
+            avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Paula',
+            created_at: new Date().toISOString(),
+            last_active: new Date().toISOString(),
+            permissions: ['files.upload', 'files.delete_any', 'chat.send', 'admin.manage_permissions']
+          },
+          {
+            id: '2', 
+            name: 'Gabi',
+            email: 'gabi@equipo.com',
+            role: 'member' as const,
+            avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gabi',
+            created_at: new Date().toISOString(),
+            last_active: new Date().toISOString(),
+            permissions: ['files.upload', 'files.delete_own', 'chat.send']
+          },
+          {
+            id: '3',
+            name: 'Caro', 
+            email: 'caro@equipo.com',
+            role: 'member' as const,
+            avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Caro',
+            created_at: new Date().toISOString(),
+            last_active: new Date().toISOString(),
+            permissions: ['files.upload', 'files.delete_own', 'chat.send']
+          }
+        ]
+        
+        const initialMessages = [
+          {
+            id: '1',
+            message: '¡Bienvenidas a la Agenda Colaborativa del Equipo! 🎉',
+            user_id: '1',
+            user_name: 'Paula',
+            created_at: new Date().toISOString()
+          }
+        ]
+        
+        setTeamMembers(initialMembers)
+        setChatMessages(initialMessages)
+        setSharedFiles([])
+        
+        // Guardar datos iniciales en IndexedDB para persistencia
+        await offlineDB.saveMembers(initialMembers)
+        await Promise.all(initialMessages.map(msg => offlineDB.saveMessage(msg)))
+        
+        toast.success('🎉 Aplicación inicializada - ¡Todo listo para usar!')
+        return
+      }
 
       setSharedFiles(files)
       setChatMessages(messages)

@@ -6,10 +6,7 @@ import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useAuth } from '@/hooks/useAuth'
 import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
-import BackToHomeButton from './BackToHomeButton'
-import AlwaysVisibleBackButton from './AlwaysVisibleBackButton'
-import IndependentBackButton from './IndependentBackButton'
-import { injectEmergencyButton } from '@/lib/emergency-button'
+import BackToFilesButton from './BackToFilesButton'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -26,26 +23,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { isOnline, syncInProgress } = useOfflineSync()
   const { currentUser, logout } = useAuth()
 
-  // Inyectar botón de emergencia y logs de debug
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('🚨 MainLayout useEffect ejecutado')
-      console.log('🚨 activeTab actual:', activeTab)
-      console.log('🚨 NODE_ENV:', process.env.NODE_ENV)
-      console.log('🚨 window.location:', window.location.href)
-      
-      // Inyectar botón de emergencia
-      injectEmergencyButton()
-      
-      // Log cada segundo para debug
-      const interval = setInterval(() => {
-        console.log('🚨 Debug cada segundo - activeTab:', activeTab, 'timestamp:', new Date().toISOString())
-      }, 1000)
-      
-      // Limpiar después de 10 segundos
-      setTimeout(() => clearInterval(interval), 10000)
-    }
-  }, [activeTab])
+
 
   const tabs = [
     { id: 'files', label: 'Archivos', icon: Files },
@@ -200,70 +178,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </button>
               )
             })}
-            
-            {/* BOTÓN DE PRUEBA EN SIDEBAR - SIEMPRE VISIBLE */}
-            <div className="mt-4 pt-4 border-t border-pink-200">
-              <div className="text-xs text-red-600 mb-2">🚨 BOTÓN DE PRUEBA:</div>
-              <button
-                onClick={() => {
-                  console.log('🔴 SIDEBAR BUTTON CLICKED - activeTab:', activeTab)
-                  setActiveTab('files')
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm font-bold"
-              >
-                🏠 IR A ARCHIVOS
-              </button>
-            </div>
           </nav>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6">
-          {/* BOTÓN INDEPENDIENTE - NO USA ZUSTAND */}
-          <IndependentBackButton />
-          
-          {/* BOTÓN SUPER SIMPLE - SIN COMPONENTES EXTERNOS */}
-          <div style={{ 
-            border: '3px solid red', 
-            padding: '20px', 
-            margin: '20px 0', 
-            backgroundColor: '#ffebee',
-            borderRadius: '8px'
-          }}>
-            <div style={{ fontSize: '12px', color: 'red', marginBottom: '10px' }}>
-              🚨 BOTÓN DE PRUEBA DIRECTO - activeTab actual: {activeTab}
-            </div>
-            <button 
-              onClick={() => {
-                console.log('🔴 DIRECT BUTTON CLICKED')
-                setActiveTab('files')
-              }}
-              style={{
-                width: '100%',
-                padding: '15px',
-                backgroundColor: '#e91e63',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-            >
-              🏠 BOTÓN DIRECTO - IR A ARCHIVOS
-            </button>
-          </div>
-
-          {/* Back Button - Componente separado para evitar hidratación */}
-          <BackToHomeButton />
-          
-          {/* Debug Button - SIEMPRE VISIBLE para testing en Vercel */}
-          <AlwaysVisibleBackButton />
-
-          {/* Debug Info - Solo en desarrollo */}
-          <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
-            🐛 Debug: activeTab = &quot;{activeTab}&quot; | NODE_ENV = {process.env.NODE_ENV}
-          </div>
+          {/* Botón para volver a Archivos cuando no estamos en files */}
+          <BackToFilesButton />
           
           {/* Mobile Section Title */}
           <div className="lg:hidden mb-4">
