@@ -9,6 +9,7 @@ import { Toaster } from 'react-hot-toast'
 import BackToHomeButton from './BackToHomeButton'
 import AlwaysVisibleBackButton from './AlwaysVisibleBackButton'
 import IndependentBackButton from './IndependentBackButton'
+import { injectEmergencyButton } from '@/lib/emergency-button'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -24,6 +25,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const { isOnline, syncInProgress } = useOfflineSync()
   const { currentUser, logout } = useAuth()
+
+  // Inyectar botón de emergencia y logs de debug
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('🚨 MainLayout useEffect ejecutado')
+      console.log('🚨 activeTab actual:', activeTab)
+      console.log('🚨 NODE_ENV:', process.env.NODE_ENV)
+      console.log('🚨 window.location:', window.location.href)
+      
+      // Inyectar botón de emergencia
+      injectEmergencyButton()
+      
+      // Log cada segundo para debug
+      const interval = setInterval(() => {
+        console.log('🚨 Debug cada segundo - activeTab:', activeTab, 'timestamp:', new Date().toISOString())
+      }, 1000)
+      
+      // Limpiar después de 10 segundos
+      setTimeout(() => clearInterval(interval), 10000)
+    }
+  }, [activeTab])
 
   const tabs = [
     { id: 'files', label: 'Archivos', icon: Files },
