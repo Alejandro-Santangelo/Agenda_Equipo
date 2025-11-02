@@ -37,7 +37,7 @@ export default function LoginScreen() {
     setError('')
 
     try {
-      const result = await login(formData.email)
+      const result = await login(formData.email, formData.password)
       
       if (result.success) {
         // Login exitoso
@@ -158,6 +158,16 @@ export default function LoginScreen() {
               )}
             </button>
           </form>
+        </div>
+
+        {/* Demo Credentials */}
+        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">🔑 Credenciales de Prueba:</h3>
+          <div className="text-xs text-blue-800 space-y-1">
+            <div><strong>Paula (Admin):</strong> paula@equipo.com / 1111</div>
+            <div><strong>Gabi (Miembro):</strong> gabi@equipo.com / 3333</div>
+            <div><strong>Caro (Miembro):</strong> caro@equipo.com / 2222</div>
+          </div>
         </div>
 
         {/* Footer */}

@@ -23,7 +23,7 @@ interface AuthState {
 }
 
 interface AuthStore extends AuthState {
-  login: (email: string) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   register: (email: string, password: string, name: string, phone?: string) => Promise<{ success: boolean; error?: string }>
   updateProfile: (updates: Partial<Profile>) => Promise<{ success: boolean; error?: string }>
@@ -70,11 +70,34 @@ const useAuthStore = create<AuthStore>()(
         }
       },
 
-      login: async (email: string) => {
+      login: async (email: string, password?: string) => {
         try {
           set({ loading: true })
           
-          // En modo offline o cuando Supabase no está configurado, usar datos locales
+          // Validar que se proporcione la contraseña
+          if (!password) {
+            return { success: false, error: 'La contraseña es requerida' }
+          }
+          
+          // Importar utilidades de contraseña y credenciales locales
+          const { verifyPassword } = await import('@/lib/password-utils')
+          const { findUserByEmail } = await import('@/lib/user-credentials')
+          
+          // Buscar usuario por email en credenciales locales
+          const userCredentials = findUserByEmail(email)
+          
+          if (!userCredentials) {
+            return { success: false, error: 'Usuario no encontrado' }
+          }
+          
+          // Verificar contraseña
+          const passwordIsValid = await verifyPassword(password, userCredentials.password_hash)
+          
+          if (!passwordIsValid) {
+            return { success: false, error: 'Contraseña incorrecta' }
+          }
+          
+          // Buscar datos adicionales del usuario en el store
           const { teamMembers } = useAppStore.getState()
           const localUser = teamMembers.find(member => member.email.toLowerCase() === email.toLowerCase())
           
@@ -97,11 +120,29 @@ const useAuthStore = create<AuthStore>()(
               loading: false 
             })
             
+            console.log(`✅ Login exitoso para ${profile.name} (${profile.role})`)
             return { success: true }
           }
           
-          // Si no se encuentra localmente, error en modo offline
-          return { success: false, error: 'Usuario no encontrado' }
+          // Si no se encuentra en el store, usar datos de credenciales
+          const profile: Profile = {
+            id: userCredentials.id,
+            email: userCredentials.email,
+            name: userCredentials.name,
+            phone: userCredentials.phone,
+            role: userCredentials.role,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          
+          set({ 
+            currentUser: profile,
+            isAuthenticated: true,
+            loading: false 
+          })
+          
+          console.log(`✅ Login exitoso para ${profile.name} (${profile.role})`)
+          return { success: true }
           
         } catch (error) {
           console.error('Error during login:', error)
