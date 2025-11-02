@@ -10,6 +10,7 @@ import CalendarSection from '@/components/CalendarSection'
 import TeamSection from '@/components/TeamSection'
 import StatsSection from '@/components/StatsSection'
 import ProfileSection from '@/components/ProfileSection'
+import NotificationConfigPanel from '@/components/NotificationConfigPanel'
 import OfflineNotice from '@/components/OfflineNotice'
 
 export default function Home() {
@@ -29,6 +30,8 @@ export default function Home() {
         return <TeamSection />
       case 'stats':
         return <StatsSection />
+      case 'notifications':
+        return <NotificationConfigPanel />
       case 'profile':
         return <ProfileSection />
       default:

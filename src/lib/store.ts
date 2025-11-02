@@ -20,7 +20,7 @@ interface AppState {
   unreadCount: number
   
   // UI state
-  activeTab: 'files' | 'chat' | 'tasks' | 'calendar' | 'team' | 'stats' | 'profile'
+  activeTab: 'files' | 'chat' | 'tasks' | 'calendar' | 'team' | 'stats' | 'notifications' | 'profile'
   isMobileMenuOpen: boolean
   
   // Actions
@@ -41,7 +41,7 @@ interface AppState {
   addChatMessage: (message: ChatMessage) => void
   setUnreadCount: (count: number) => void
   
-  setActiveTab: (tab: 'files' | 'chat' | 'tasks' | 'calendar' | 'team' | 'stats' | 'profile') => void
+  setActiveTab: (tab: 'files' | 'chat' | 'tasks' | 'calendar' | 'team' | 'stats' | 'notifications' | 'profile') => void
   setMobileMenuOpen: (open: boolean) => void
 }
 

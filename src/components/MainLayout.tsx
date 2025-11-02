@@ -31,7 +31,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { id: 'tasks', label: 'Tareas', icon: CheckSquare },
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'team', label: 'Equipo', icon: Users },
-    ...(currentUser?.role === 'admin' ? [{ id: 'stats' as const, label: 'Estadísticas', icon: BarChart3 }] : []),
+    ...(currentUser?.role === 'admin' ? [
+      { id: 'stats' as const, label: 'Estadísticas', icon: BarChart3 },
+      { id: 'notifications' as const, label: 'Configuración', icon: Shield }
+    ] : []),
     { id: 'profile', label: 'Mi Perfil', icon: UserCircle },
   ] as const
 
