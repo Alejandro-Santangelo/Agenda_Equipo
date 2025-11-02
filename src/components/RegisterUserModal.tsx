@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, UserPlus } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, UserPlus, Phone, Send } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 interface RegisterFormData {
   name: string
   email: string
+  phone: string
   password: string
   confirmPassword: string
 }
@@ -21,6 +22,7 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   })
@@ -33,7 +35,7 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const { register, loading, currentUser } = useAuth()
+  const { loading, currentUser } = useAuth()
 
   const handleInputChange = (field: keyof RegisterFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -72,28 +74,58 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
     }
 
     try {
-      const result = await register(formData.email, formData.password, formData.name)
+      // Llamar a la nueva API con notificaciones automáticas
+      const response = await fetch('/api/add-member', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.toLowerCase().trim(),
+          phone: formData.phone.trim() || undefined,
+          password: formData.password,
+          invitedBy: currentUser?.name || 'Administrador'
+        }),
+      })
+
+      const result = await response.json()
       
-      if (result.success) {
-        setSuccess(`Usuario ${formData.name} registrado exitosamente`)
+      if (response.ok && result.success) {
+        // Mostrar resultado de notificaciones
+        let notificationStatus = ''
+        if (result.notifications.email.sent && result.notifications.whatsapp.sent) {
+          notificationStatus = ' ✅ Email y WhatsApp enviados'
+        } else if (result.notifications.email.sent) {
+          notificationStatus = ' ✅ Email enviado' + (formData.phone ? ' (WhatsApp falló)' : '')
+        } else if (result.notifications.whatsapp.sent) {
+          notificationStatus = ' ✅ WhatsApp enviado (Email falló)'
+        } else {
+          notificationStatus = ' ⚠️ Miembro creado, pero falló el envío de notificaciones'
+        }
+
+        setSuccess(`${formData.name} agregada exitosamente!${notificationStatus}`)
+        
         setFormData({
           name: '',
           email: '',
+          phone: '',
           password: '',
           confirmPassword: ''
         })
         
-        // Cerrar modal después de 2 segundos
+        // Cerrar modal después de 3 segundos para mostrar el resultado
         setTimeout(() => {
           onSuccess()
           onClose()
           setSuccess('')
-        }, 2000)
+        }, 3000)
       } else {
-        setError(result.error || 'Error al registrar usuario')
+        setError(result.error || 'Error al agregar miembro')
       }
-    } catch (err) {
-      setError('Error de conexión')
+    } catch (error) {
+      console.error('Error:', error)
+      setError('Error de conexión al servidor')
     }
   }
 
@@ -115,10 +147,10 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
             <UserPlus className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Agregar Nuevo Usuario
+            Agregar Nuevo Miembro
           </h2>
           <p className="text-gray-600">
-            Registra un nuevo miembro del equipo
+            Se enviará email y WhatsApp automáticamente
           </p>
         </div>
 
@@ -148,7 +180,7 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
           {/* Email */}
           <div className="space-y-2">
             <label htmlFor="register-email" className="text-sm font-medium text-gray-700 block">
-              Correo electrónico
+              Correo electrónico *
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -160,7 +192,28 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="usuario@equipo.com"
+                placeholder="maria@email.com"
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {/* Teléfono */}
+          <div className="space-y-2">
+            <label htmlFor="register-phone" className="text-sm font-medium text-gray-700 block">
+              Número de celular/WhatsApp
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Phone className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                id="register-phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                placeholder="Ej: +54 9 11 1234-5678"
                 disabled={loading}
               />
             </div>
@@ -169,7 +222,7 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
           {/* Contraseña */}
           <div className="space-y-2">
             <label htmlFor="register-password" className="text-sm font-medium text-gray-700 block">
-              Contraseña
+              Contraseña inicial *
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -181,7 +234,7 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Contraseña inicial"
+                placeholder="Contraseña temporal (min. 4 caracteres)"
                 disabled={loading}
               />
               <button
@@ -247,6 +300,17 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
             </div>
           )}
 
+          {/* Información del proceso */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-700">
+              <strong>📋 Proceso de Invitación:</strong><br />
+              • El nuevo miembro será agregado como &quot;Miembro&quot;<br />
+              • Se enviará un <strong>email</strong> con las credenciales de acceso<br />
+              • Se enviará un <strong>WhatsApp</strong> (si se proporciona número)<br />
+              • Debe cambiar la contraseña desde su perfil al ingresar
+            </p>
+          </div>
+
           {/* Buttons */}
           <div className="flex space-x-3 pt-4">
             <button
@@ -260,17 +324,17 @@ export default function RegisterUserModal({ isOpen, onClose, onSuccess }: Regist
             <button
               type="submit"
               disabled={loading || !formData.name.trim() || !formData.email.trim() || !formData.password || !formData.confirmPassword}
-              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Registrando...</span>
+                  <span>Agregando...</span>
                 </>
               ) : (
                 <>
-                  <UserPlus className="w-5 h-5" />
-                  <span>Registrar Usuario</span>
+                  <Send className="w-4 h-4" />
+                  <span>Agregar y Notificar</span>
                 </>
               )}
             </button>
