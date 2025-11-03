@@ -146,6 +146,11 @@ export default function ChatSection() {
   const formatMessageTime = (dateString: string) => {
     const date = new Date(dateString)
     
+    // Validar fecha antes de usar funciones de date-fns
+    if (date.toString() === 'Invalid Date') {
+      return 'Fecha inválida'
+    }
+    
     if (isToday(date)) {
       return format(date, 'HH:mm')
     } else if (isYesterday(date)) {
@@ -185,6 +190,11 @@ export default function ChatSection() {
 
   const formatDateHeader = (dateString: string) => {
     const date = new Date(dateString)
+    
+    // Validar fecha antes de usar funciones de date-fns
+    if (date.toString() === 'Invalid Date') {
+      return 'Fecha inválida'
+    }
     
     if (isToday(date)) {
       return 'Hoy'
