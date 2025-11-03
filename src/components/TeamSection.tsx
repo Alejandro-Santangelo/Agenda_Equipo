@@ -193,18 +193,25 @@ El Equipo`)
       }
       console.log('✅ Usuario registrado exitosamente en el sistema de auth')
 
-      // Crear nuevo miembro con estructura simple
+      // Hashear la contraseña para almacenarla
+      console.log('🔐 Hasheando contraseña...')
+      const { hashPassword } = await import('@/lib/password-utils')
+      const passwordHash = await hashPassword(newMemberPassword)
+      console.log('✅ Contraseña hasheada correctamente')
+
+      // Crear nuevo miembro con estructura simple + password_hash
       const newMemberData = {
         id: `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: newMemberName.trim(),
         email: newMemberEmail.trim(),
         phone: newMemberPhone.trim() || undefined,
-        role: 'member',
+        role: 'member' as const,
+        password_hash: passwordHash,
         created_at: new Date().toISOString(),
         last_active: new Date().toISOString(),
       }
 
-      console.log('👤 Nuevo miembro creado:', newMemberData)
+      console.log('👤 Nuevo miembro creado:', { ...newMemberData, password_hash: '[HIDDEN]' })
       
       // Agregar localmente primero
       console.log('💾 Agregando miembro al estado local...')
@@ -219,7 +226,7 @@ El Equipo`)
       if (isOnline && supabase && isSupabaseConfigured()) {
         try {
           await supabase.from('team_members').insert([newMemberData])
-          console.log('✅ Miembro agregado exitosamente a la base de datos')
+          console.log('✅ Miembro agregado exitosamente a la base de datos con credenciales')
         } catch (error) {
           console.error('Error adding team member to database:', error)
           await addOperationToQueue('member', newMemberData)
