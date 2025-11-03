@@ -107,7 +107,13 @@ export const useActivityLog = create<ActivityLogStore>((set, get) => ({
         const { data, error } = await query
 
         if (!error && data) {
-          set({ activities: data })
+          // Filtrar actividades con fechas válidas
+          const validActivities = data.filter(activity => {
+            if (!activity.created_at) return false
+            const date = new Date(activity.created_at)
+            return date.toString() !== 'Invalid Date'
+          })
+          set({ activities: validActivities })
           console.log('✅ Actividades cargadas desde Supabase')
         } else if (error) {
           console.error('Error fetching activities:', error)

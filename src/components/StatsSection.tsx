@@ -347,7 +347,12 @@ export default function StatsSection() {
                     <div>
                       <h4 className="font-medium text-gray-900">{member.name}</h4>
                       <p className="text-sm text-gray-500">
-                        Última actividad: {format(new Date(member.lastActive), 'dd MMM, HH:mm', { locale: es })}
+                        {member.lastActive && (() => {
+                          const lastActiveDate = new Date(member.lastActive);
+                          return lastActiveDate.toString() !== 'Invalid Date' 
+                            ? `Última actividad: ${format(lastActiveDate, 'dd MMM, HH:mm', { locale: es })}`
+                            : 'Sin actividad reciente';
+                        })()}
                       </p>
                     </div>
                   </div>

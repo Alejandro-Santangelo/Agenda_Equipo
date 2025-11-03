@@ -713,10 +713,15 @@ El Equipo`)
                       <Mail size={14} />
                       <span className="truncate">{member.email}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar size={14} />
-                      <span>Desde {format(new Date(member.created_at), 'MMM yyyy', { locale: es })}</span>
-                    </div>
+                    {member.created_at && (() => {
+                      const createdDate = new Date(member.created_at);
+                      return createdDate.toString() !== 'Invalid Date' ? (
+                        <div className="flex items-center gap-1">
+                          <Calendar size={14} />
+                          <span>Desde {format(createdDate, 'MMM yyyy', { locale: es })}</span>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                   
                   <div className="mt-2">
