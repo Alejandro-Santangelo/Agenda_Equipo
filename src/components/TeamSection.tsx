@@ -199,16 +199,25 @@ El Equipo`)
       const passwordHash = await hashPassword(newMemberPassword)
       console.log('✅ Contraseña hasheada correctamente')
 
+      // Generar UUID válido para Supabase
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+
       // Crear nuevo miembro con estructura compatible con Supabase
       const newMemberData = {
-        id: `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: generateUUID(),
         name: newMemberName.trim(),
         email: newMemberEmail.trim(),
         phone: newMemberPhone.trim() || undefined,
         role: 'member' as const,
         password_hash: passwordHash,
         created_at: new Date().toISOString(),
-        last_seen: new Date().toISOString(), // Cambiado de last_active a last_seen
+        last_seen: new Date().toISOString(),
         is_active: true,
       }
 
