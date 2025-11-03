@@ -1,16 +1,17 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react'
-import { useEvents } from '@/hooks/useEvents'
+import { Plus, Calendar as CalendarIcon, Clock, Edit2, Trash2 } from 'lucide-react'
+import { useEvents, Event } from '@/hooks/useEvents'
 import CreateEventModal from './CreateEventModal'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export default function CalendarSection() {
-  const { events, fetchEvents } = useEvents()
+  const { events, fetchEvents, deleteEvent } = useEvents()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedDate] = useState(new Date())
+  const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
 
   useEffect(() => {
     fetchEvents()
@@ -159,6 +160,31 @@ export default function CalendarSection() {
                         )}
                       </div>
                     </div>
+                    
+                    {/* Botones de acción */}
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => {
+                          setEditingEvent(event)
+                          setShowCreateModal(true)
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Editar evento"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm('¿Estás seguro de eliminar este evento?')) {
+                            await deleteEvent(event.id)
+                          }
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Eliminar evento"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -210,11 +236,15 @@ export default function CalendarSection() {
         </div>
       </div>
 
-      {/* Modal para crear eventos */}
+      {/* Modal para crear/editar eventos */}
       <CreateEventModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false)
+          setEditingEvent(undefined)
+        }}
         selectedDate={selectedDate}
+        event={editingEvent}
       />
     </div>
   )
