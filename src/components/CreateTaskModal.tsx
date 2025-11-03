@@ -43,11 +43,16 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setLoading(true);
 
     try {
+      if (!currentUser?.id) {
+        console.error('Error: Usuario no autenticado');
+        return;
+      }
+
       const taskData = {
         ...formData,
         project_id: projectId,
-        assigned_to: task?.assigned_to || 'current-user',
-        created_by: task?.created_by || 'current-user',
+        assigned_to: task?.assigned_to || currentUser.id,
+        created_by: task?.created_by || currentUser.id,
         due_date: formData.due_date || undefined
       };
 

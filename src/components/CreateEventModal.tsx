@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { Event, useEvents } from '@/hooks/useEvents';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   selectedDate
 }) => {
   const { addEvent, updateEvent } = useEvents();
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: event?.title || '',
@@ -30,9 +32,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     setLoading(true);
 
     try {
+      if (!currentUser?.id) {
+        console.error('Error: Usuario no autenticado');
+        return;
+      }
+
       const eventData = {
         ...formData,
-        created_by: event?.created_by || 'current-user',
+        created_by: event?.created_by || currentUser.id,
         all_day: false,
         priority: 'medium' as const
       };
