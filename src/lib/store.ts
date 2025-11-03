@@ -341,14 +341,16 @@ if (typeof window !== 'undefined') {
                   created_at: newFile.created_at as string,
                   comments: []
                 }
-                store.sharedFiles = [...store.sharedFiles, mappedFile]
-                useAppStore.setState({ sharedFiles: store.sharedFiles })
-                console.log('🔄 Nuevo archivo recibido en tiempo real')
+                // Crear nuevo array inmutable para forzar re-render
+                const updatedFiles = [...store.sharedFiles, mappedFile]
+                useAppStore.setState({ sharedFiles: updatedFiles })
+                console.log('🔄 Nuevo archivo recibido en tiempo real:', mappedFile.name)
               }
             } else if (payload.eventType === 'DELETE') {
               const deletedId = (payload.old as Record<string, unknown>).id as string
-              store.sharedFiles = store.sharedFiles.filter(f => f.id !== deletedId)
-              useAppStore.setState({ sharedFiles: store.sharedFiles })
+              // Crear nuevo array inmutable para forzar re-render
+              const updatedFiles = store.sharedFiles.filter(f => f.id !== deletedId)
+              useAppStore.setState({ sharedFiles: updatedFiles })
               console.log('🔄 Archivo eliminado en tiempo real')
             }
           }
@@ -376,9 +378,10 @@ if (typeof window !== 'undefined') {
                 edited_at: newMessage.edited_at as string | undefined,
                 file_attachments: []
               }
-              store.chatMessages = [...store.chatMessages, mappedMessage]
-              useAppStore.setState({ chatMessages: store.chatMessages })
-              console.log('🔄 Nuevo mensaje recibido en tiempo real')
+              // Crear nuevo array inmutable para forzar re-render
+              const updatedMessages = [...store.chatMessages, mappedMessage]
+              useAppStore.setState({ chatMessages: updatedMessages })
+              console.log('🔄 Nuevo mensaje recibido en tiempo real:', mappedMessage.message.substring(0, 30))
             }
           }
         )

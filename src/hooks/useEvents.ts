@@ -11,7 +11,7 @@ export interface Event {
   start_date: string
   end_date: string
   all_day: boolean
-  event_type: 'meeting' | 'deadline' | 'reminder' | 'personal'
+  event_type: string  // Ahora acepta cualquier string para tipos personalizados
   priority: 'low' | 'medium' | 'high'
   created_by: string
   created_at: string
@@ -178,7 +178,7 @@ export const useEvents = create<EventStore>()(
 
 // 🔄 Configurar Realtime para eventos
 if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
-  const eventsChannel = supabase
+  supabase
     .channel('events-changes')
     .on(
       'postgres_changes',
@@ -190,21 +190,24 @@ if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
           const newEvent = payload.new as Event
           const exists = store.events.find(e => e.id === newEvent.id)
           if (!exists) {
-            store.events = [...store.events, newEvent]
-            useEvents.setState({ events: store.events })
-            console.log('🔄 Nuevo evento recibido en tiempo real')
+            // Crear nuevo array inmutable para forzar re-render
+            const updatedEvents = [...store.events, newEvent]
+            useEvents.setState({ events: updatedEvents })
+            console.log('🔄 Nuevo evento recibido en tiempo real:', newEvent.title)
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedEvent = payload.new as Event
-          store.events = store.events.map(e => 
+          // Crear nuevo array inmutable para forzar re-render
+          const updatedEvents = store.events.map(e => 
             e.id === updatedEvent.id ? updatedEvent : e
           )
-          useEvents.setState({ events: store.events })
-          console.log('🔄 Evento actualizado en tiempo real')
+          useEvents.setState({ events: updatedEvents })
+          console.log('🔄 Evento actualizado en tiempo real:', updatedEvent.title)
         } else if (payload.eventType === 'DELETE') {
           const deletedId = (payload.old as Event).id
-          store.events = store.events.filter(e => e.id !== deletedId)
-          useEvents.setState({ events: store.events })
+          // Crear nuevo array inmutable para forzar re-render
+          const updatedEvents = store.events.filter(e => e.id !== deletedId)
+          useEvents.setState({ events: updatedEvents })
           console.log('🔄 Evento eliminado en tiempo real')
         }
       }

@@ -65,6 +65,7 @@ export default function CalendarSection() {
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'meeting': return 'bg-blue-100 text-blue-800'
+      case 'workday': return 'bg-purple-100 text-purple-800'
       case 'deadline': return 'bg-red-100 text-red-800'
       case 'reminder': return 'bg-yellow-100 text-yellow-800'
       case 'personal': return 'bg-green-100 text-green-800'
@@ -75,10 +76,11 @@ export default function CalendarSection() {
   const getEventTypeLabel = (type: string) => {
     switch (type) {
       case 'meeting': return 'Reunión'
+      case 'workday': return 'Jornada'
       case 'deadline': return 'Fecha límite'
       case 'reminder': return 'Recordatorio'
       case 'personal': return 'Personal'
-      default: return 'Evento'
+      default: return type.charAt(0).toUpperCase() + type.slice(1) // Capitalizar tipos personalizados
     }
   }
 
@@ -166,20 +168,26 @@ export default function CalendarSection() {
                       )}
                       
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        {event.start_date && (
-                          <div className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            <span>
-                              {format(new Date(event.start_date), 'PPP p', { locale: es })}
-                            </span>
-                          </div>
-                        )}
+                        {event.start_date && (() => {
+                          const startDate = new Date(event.start_date);
+                          return startDate.toString() !== 'Invalid Date' ? (
+                            <div className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              <span>
+                                {format(startDate, 'PPP p', { locale: es })}
+                              </span>
+                            </div>
+                          ) : null;
+                        })()}
                         
-                        {event.end_date && (
-                          <div className="flex items-center">
-                            <span>hasta {format(new Date(event.end_date), 'p', { locale: es })}</span>
-                          </div>
-                        )}
+                        {event.end_date && (() => {
+                          const endDate = new Date(event.end_date);
+                          return endDate.toString() !== 'Invalid Date' ? (
+                            <div className="flex items-center">
+                              <span>hasta {format(endDate, 'p', { locale: es })}</span>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                     

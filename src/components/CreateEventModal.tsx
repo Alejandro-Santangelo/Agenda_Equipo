@@ -26,7 +26,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     description: string;
     start_date: string;
     end_date: string;
-    event_type: 'meeting' | 'deadline' | 'reminder' | 'personal';
+    event_type: string;
   }>({
     title: '',
     description: '',
@@ -34,17 +34,22 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     end_date: '',
     event_type: 'meeting'
   });
+  const [customEventType, setCustomEventType] = useState('');
 
   // Resetear formulario cuando cambia isOpen o event
   useEffect(() => {
     if (isOpen) {
+      const eventType = event?.event_type || 'meeting';
+      const isPredefined = eventType === 'meeting' || eventType === 'workday';
+      
       setFormData({
         title: event?.title || '',
         description: event?.description || '',
         start_date: event?.start_date || (selectedDate ? selectedDate.toISOString().slice(0, 16) : ''),
         end_date: event?.end_date || '',
-        event_type: (event?.event_type || 'meeting') as 'meeting' | 'deadline' | 'reminder' | 'personal'
+        event_type: isPredefined ? eventType : 'custom'
       });
+      setCustomEventType(isPredefined ? '' : eventType);
     }
   }, [isOpen, event, selectedDate]);
 
@@ -58,8 +63,21 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         return;
       }
 
+      // Determinar el tipo de evento final
+      const finalEventType = formData.event_type === 'custom' 
+        ? customEventType.trim() 
+        : formData.event_type;
+
+      // Validar tipo personalizado si se seleccionó "custom"
+      if (formData.event_type === 'custom' && !finalEventType) {
+        alert('Por favor ingresa un tipo de evento personalizado');
+        setLoading(false);
+        return;
+      }
+
       const eventData = {
         ...formData,
+        event_type: finalEventType,
         created_by: event?.created_by || currentUser.id,
         all_day: false,
         priority: 'medium' as const
@@ -126,8 +144,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b">
+      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold">
             {event ? 'Editar evento' : 'Nuevo evento'}
           </h2>
@@ -139,7 +157,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Título *
@@ -205,15 +223,35 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             <select
               name="event_type"
               value={formData.event_type}
-              onChange={handleChange}
+              onChange={(e) => {
+                setFormData({ ...formData, event_type: e.target.value });
+                if (e.target.value !== 'custom') {
+                  setCustomEventType('');
+                }
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="meeting">Reunión</option>
-              <option value="deadline">Fecha límite</option>
-              <option value="event">Evento</option>
-              <option value="reminder">Recordatorio</option>
+              <option value="workday">Jornada</option>
+              <option value="custom">Otro (personalizado)</option>
             </select>
           </div>
+
+          {formData.event_type === 'custom' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo personalizado *
+              </label>
+              <input
+                type="text"
+                value={customEventType}
+                onChange={(e) => setCustomEventType(e.target.value)}
+                placeholder="Ej: Capacitación, Celebración, etc."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <button

@@ -311,7 +311,7 @@ export const useTasks = create<TaskStore>()(
 // 🔄 Configurar Realtime para sincronización automática
 if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
   // Subscripción a cambios en tasks
-  const tasksChannel = supabase
+  supabase
     .channel('tasks-changes')
     .on(
       'postgres_changes',
@@ -323,21 +323,24 @@ if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
           const newTask = payload.new as Task
           const exists = store.tasks.find(t => t.id === newTask.id)
           if (!exists) {
-            store.tasks = [...store.tasks, newTask]
-            useTasks.setState({ tasks: store.tasks })
-            console.log('🔄 Nueva tarea recibida en tiempo real')
+            // Crear nuevo array inmutable para forzar re-render
+            const updatedTasks = [...store.tasks, newTask]
+            useTasks.setState({ tasks: updatedTasks })
+            console.log('🔄 Nueva tarea recibida en tiempo real:', newTask.title)
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedTask = payload.new as Task
-          store.tasks = store.tasks.map(t => 
+          // Crear nuevo array inmutable para forzar re-render
+          const updatedTasks = store.tasks.map(t => 
             t.id === updatedTask.id ? updatedTask : t
           )
-          useTasks.setState({ tasks: store.tasks })
-          console.log('🔄 Tarea actualizada en tiempo real')
+          useTasks.setState({ tasks: updatedTasks })
+          console.log('🔄 Tarea actualizada en tiempo real:', updatedTask.title)
         } else if (payload.eventType === 'DELETE') {
           const deletedId = (payload.old as Task).id
-          store.tasks = store.tasks.filter(t => t.id !== deletedId)
-          useTasks.setState({ tasks: store.tasks })
+          // Crear nuevo array inmutable para forzar re-render
+          const updatedTasks = store.tasks.filter(t => t.id !== deletedId)
+          useTasks.setState({ tasks: updatedTasks })
           console.log('🔄 Tarea eliminada en tiempo real')
         }
       }
@@ -345,7 +348,7 @@ if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
     .subscribe()
 
   // Subscripción a cambios en projects
-  const projectsChannel = supabase
+  supabase
     .channel('projects-changes')
     .on(
       'postgres_changes',
@@ -357,21 +360,24 @@ if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
           const newProject = payload.new as Project
           const exists = store.projects.find(p => p.id === newProject.id)
           if (!exists) {
-            store.projects = [...store.projects, newProject]
-            useTasks.setState({ projects: store.projects })
-            console.log('🔄 Nuevo proyecto recibido en tiempo real')
+            // Crear nuevo array inmutable para forzar re-render
+            const updatedProjects = [...store.projects, newProject]
+            useTasks.setState({ projects: updatedProjects })
+            console.log('🔄 Nuevo proyecto recibido en tiempo real:', newProject.name)
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedProject = payload.new as Project
-          store.projects = store.projects.map(p => 
+          // Crear nuevo array inmutable para forzar re-render
+          const updatedProjects = store.projects.map(p => 
             p.id === updatedProject.id ? updatedProject : p
           )
-          useTasks.setState({ projects: store.projects })
-          console.log('🔄 Proyecto actualizado en tiempo real')
+          useTasks.setState({ projects: updatedProjects })
+          console.log('🔄 Proyecto actualizado en tiempo real:', updatedProject.name)
         } else if (payload.eventType === 'DELETE') {
           const deletedId = (payload.old as Project).id
-          store.projects = store.projects.filter(p => p.id !== deletedId)
-          useTasks.setState({ projects: store.projects })
+          // Crear nuevo array inmutable para forzar re-render
+          const updatedProjects = store.projects.filter(p => p.id !== deletedId)
+          useTasks.setState({ projects: updatedProjects })
           console.log('🔄 Proyecto eliminado en tiempo real')
         }
       }
