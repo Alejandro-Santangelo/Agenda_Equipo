@@ -426,9 +426,11 @@ El Equipo`)
         `Exportado el: ${new Date().toLocaleString()}`,
         `Total de mensajes: ${chatMessages.length}\n`,
         '--- MENSAJES ---\n',
-        ...chatMessages.map(msg => 
-          `[${new Date(msg.created_at).toLocaleString()}] ${msg.user_name}: ${msg.message}`
-        )
+        ...chatMessages.map(msg => {
+          const msgDate = new Date(msg.created_at);
+          const dateStr = msgDate.toString() !== 'Invalid Date' ? msgDate.toLocaleString() : 'Fecha inválida';
+          return `[${dateStr}] ${msg.user_name}: ${msg.message}`;
+        })
       ].join('\n')
 
       // Crear y descargar archivos
@@ -583,6 +585,8 @@ El Equipo`)
     if (diffInDays === 1) return 'Ayer'
     if (diffInDays < 7) return `Hace ${diffInDays} días`
     
+    // Validar fecha antes de format
+    if (lastActiveDate.toString() === 'Invalid Date') return 'Fecha inválida'
     return format(lastActiveDate, 'dd MMM', { locale: es })
   }
 
