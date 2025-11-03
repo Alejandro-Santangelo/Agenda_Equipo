@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Flag, Bell } from 'lucide-react';
 import { Task, useTasks } from '@/hooks/useTasks';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,12 +22,18 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const { currentUser, isAdmin } = useAuth();
   const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: task?.title || '',
-    description: task?.description || '',
-    priority: task?.priority || 'medium',
-    due_date: task?.due_date || '',
-    status: task?.status || 'pending'
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    due_date: string;
+    status: 'pending' | 'in_progress' | 'completed';
+  }>({
+    title: '',
+    description: '',
+    priority: 'medium',
+    due_date: '',
+    status: 'pending'
   });
 
   // Estados para notificaciones
@@ -39,6 +45,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     phone?: string;
     role: 'admin' | 'member';
   }>>([]);
+
+  // Resetear formulario cuando cambia isOpen o task
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        title: task?.title || '',
+        description: task?.description || '',
+        priority: (task?.priority || 'medium') as 'low' | 'medium' | 'high',
+        due_date: task?.due_date || '',
+        status: (task?.status || 'pending') as 'pending' | 'in_progress' | 'completed'
+      });
+      setShowNotifications(false);
+      setNotificationRecipients([]);
+    }
+  }, [isOpen, task]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { Event, useEvents } from '@/hooks/useEvents';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,13 +21,32 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const { currentUser } = useAuth();
   const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: event?.title || '',
-    description: event?.description || '',
-    start_date: event?.start_date || (selectedDate ? selectedDate.toISOString().slice(0, 16) : ''),
-    end_date: event?.end_date || '',
-    event_type: event?.event_type || 'meeting'
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    start_date: string;
+    end_date: string;
+    event_type: 'meeting' | 'deadline' | 'reminder' | 'personal';
+  }>({
+    title: '',
+    description: '',
+    start_date: '',
+    end_date: '',
+    event_type: 'meeting'
   });
+
+  // Resetear formulario cuando cambia isOpen o event
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        title: event?.title || '',
+        description: event?.description || '',
+        start_date: event?.start_date || (selectedDate ? selectedDate.toISOString().slice(0, 16) : ''),
+        end_date: event?.end_date || '',
+        event_type: (event?.event_type || 'meeting') as 'meeting' | 'deadline' | 'reminder' | 'personal'
+      });
+    }
+  }, [isOpen, event, selectedDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
