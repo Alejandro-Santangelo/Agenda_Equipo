@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { TeamMember, SharedFile, ChatMessage } from './supabase'
-import { DEFAULT_MEMBER_PERMISSIONS } from '@/types/permissions'
 
 interface AppState {
   // User state
@@ -45,35 +44,13 @@ interface AppState {
   setMobileMenuOpen: (open: boolean) => void
 }
 
-// Función para obtener los miembros por defecto (solo los que existen en Supabase)
-const getDefaultMembers = () => [
-  {
-    id: '2',
-    name: 'Gabi',
-    email: 'gabi@equipo.com',
-    role: 'member' as const,
-    created_at: new Date().toISOString(),
-    last_active: new Date().toISOString(),
-    permissions: DEFAULT_MEMBER_PERMISSIONS,
-  },
-  {
-    id: '3',
-    name: 'Caro',
-    email: 'caro@equipo.com',
-    role: 'member' as const,
-    created_at: new Date().toISOString(),
-    last_active: new Date().toISOString(),
-    permissions: DEFAULT_MEMBER_PERMISSIONS,
-  },
-]
-
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       // Initial state
       currentUser: null,
       isOnline: true,
-      teamMembers: getDefaultMembers(),
+      teamMembers: [], // Se cargarán desde Supabase en la sincronización
       sharedFiles: [],
       uploadProgress: {},
       chatMessages: [],
@@ -89,19 +66,8 @@ export const useAppStore = create<AppState>()(
       setOnlineStatus: (status) => set({ isOnline: status }),
       
       setTeamMembers: (members) => {
-        // Verificar que todos los miembros por defecto estén presentes
-        const defaultMembers = getDefaultMembers()
-        const currentMembers = [...members]
-        
-        defaultMembers.forEach(defaultMember => {
-          const exists = currentMembers.find(m => m.email === defaultMember.email)
-          if (!exists) {
-            console.log(`➕ Agregando miembro faltante: ${defaultMember.name}`)
-            currentMembers.push(defaultMember)
-          }
-        })
-        
-        set({ teamMembers: currentMembers })
+        // Simplemente establecer los miembros desde Supabase sin agregar por defecto
+        set({ teamMembers: members })
       },
       addTeamMember: (member) => set((state) => ({ 
         teamMembers: [...state.teamMembers, member] 
@@ -276,26 +242,8 @@ export const useAppStore = create<AppState>()(
         currentUser: state.currentUser,
         teamMembers: state.teamMembers,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Migración automática: verificar que todos los miembros por defecto estén presentes
-          const defaultMembers = getDefaultMembers()
-          const currentMembers = [...(state.teamMembers || [])]
-          let needsUpdate = false
-          
-          defaultMembers.forEach(defaultMember => {
-            const exists = currentMembers.find(m => m.email === defaultMember.email)
-            if (!exists) {
-              console.log(`🔄 Migrando: agregando ${defaultMember.name}`)
-              currentMembers.push(defaultMember)
-              needsUpdate = true
-            }
-          })
-          
-          if (needsUpdate) {
-            state.teamMembers = currentMembers
-          }
-        }
+      onRehydrateStorage: () => () => {
+        // Ya no agregamos miembros por defecto, solo cargamos desde Supabase
       },
     }
   )
