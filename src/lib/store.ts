@@ -32,13 +32,13 @@ interface AppState {
   removeTeamMember: (memberId: string) => void
   updateMemberPermissions: (memberId: string, permissions: string[]) => Promise<void>
   
-  setSharedFiles: (files: SharedFile[]) => void
-  addSharedFile: (file: SharedFile) => void
-  removeSharedFile: (fileId: string) => void
+  setSharedFiles: (files: SharedFile[]) => Promise<void>
+  addSharedFile: (file: SharedFile) => Promise<void>
+  removeSharedFile: (fileId: string) => Promise<void>
   updateUploadProgress: (fileId: string, progress: number) => void
   
-  setChatMessages: (messages: ChatMessage[]) => void
-  addChatMessage: (message: ChatMessage) => void
+  setChatMessages: (messages: ChatMessage[]) => Promise<void>
+  addChatMessage: (message: ChatMessage) => Promise<void>
   setUnreadCount: (count: number) => void
   
   setActiveTab: (tab: 'files' | 'chat' | 'tasks' | 'calendar' | 'team' | 'stats' | 'notifications' | 'profile') => void
@@ -141,21 +141,139 @@ export const useAppStore = create<AppState>()(
         // await addOperationToQueue('member_update', { id: memberId, permissions })
       },
       
-      setSharedFiles: (files) => set({ sharedFiles: files }),
-      addSharedFile: (file) => set((state) => ({ 
-        sharedFiles: [file, ...state.sharedFiles] 
-      })),
-      removeSharedFile: (fileId) => set((state) => ({ 
-        sharedFiles: state.sharedFiles.filter(f => f.id !== fileId) 
-      })),
+      setSharedFiles: async (files) => {
+        set({ sharedFiles: files })
+        
+        // Sincronizar con Supabase si está configurado
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            const { data: serverFiles } = await supabase
+              .from('shared_files')
+              .select('*')
+              .order('created_at', { ascending: false })
+            
+            if (serverFiles && serverFiles.length > 0) {
+              set({ sharedFiles: serverFiles })
+              console.log('✅ Archivos sincronizados desde Supabase')
+            }
+          } catch (error) {
+            console.log('📱 Usando archivos locales')
+          }
+        }
+      },
+      
+      addSharedFile: async (file) => {
+        // Agregar localmente primero (inmediato)
+        set((state) => ({ 
+          sharedFiles: [file, ...state.sharedFiles] 
+        }))
+        
+        // Sincronizar con Supabase
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            const { error } = await supabase.from('shared_files').insert([{
+              id: file.id,
+              name: file.name,
+              type: file.type,
+              file_type: file.file_type,
+              url: file.type === 'link' ? file.drive_url : file.file_url,
+              size_bytes: file.size,
+              shared_by: file.uploaded_by,
+              created_at: file.created_at
+            }])
+            
+            if (!error) {
+              console.log('✅ Archivo guardado en Supabase')
+            }
+          } catch (error) {
+            console.log('📱 Archivo guardado localmente, se sincronizará después')
+          }
+        }
+      },
+      
+      removeSharedFile: async (fileId) => {
+        // Eliminar localmente primero (inmediato)
+        set((state) => ({ 
+          sharedFiles: state.sharedFiles.filter(f => f.id !== fileId) 
+        }))
+        
+        // Sincronizar con Supabase
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            await supabase.from('shared_files').delete().eq('id', fileId)
+            console.log('✅ Archivo eliminado de Supabase')
+          } catch (error) {
+            console.log('📱 Archivo eliminado localmente, se sincronizará después')
+          }
+        }
+      },
+      
       updateUploadProgress: (fileId, progress) => set((state) => ({
         uploadProgress: { ...state.uploadProgress, [fileId]: progress }
       })),
       
-      setChatMessages: (messages) => set({ chatMessages: messages }),
-      addChatMessage: (message) => set((state) => ({ 
-        chatMessages: [...state.chatMessages, message] 
-      })),
+      setChatMessages: async (messages) => {
+        set({ chatMessages: messages })
+        
+        // Sincronizar con Supabase si está configurado
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            const { data: serverMessages } = await supabase
+              .from('chat_messages')
+              .select('*')
+              .order('created_at', { ascending: true })
+            
+            if (serverMessages && serverMessages.length > 0) {
+              // Mapear a formato local
+              const mappedMessages = serverMessages.map(msg => ({
+                id: msg.id,
+                message: msg.message,
+                user_id: msg.sent_by,
+                user_name: '', // Se completará con datos de team_members
+                created_at: msg.created_at,
+                edited_at: msg.edited_at,
+                file_attachments: []
+              }))
+              set({ chatMessages: mappedMessages })
+              console.log('✅ Mensajes sincronizados desde Supabase')
+            }
+          } catch (error) {
+            console.log('📱 Usando mensajes locales')
+          }
+        }
+      },
+      
+      addChatMessage: async (message) => {
+        // Agregar localmente primero (inmediato)
+        set((state) => ({ 
+          chatMessages: [...state.chatMessages, message] 
+        }))
+        
+        // Sincronizar con Supabase
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            const { error } = await supabase.from('chat_messages').insert([{
+              id: message.id,
+              message: message.message,
+              sent_by: message.user_id,
+              created_at: message.created_at,
+              message_type: 'text'
+            }])
+            
+            if (!error) {
+              console.log('✅ Mensaje guardado en Supabase')
+            }
+          } catch (error) {
+            console.log('📱 Mensaje guardado localmente, se sincronizará después')
+          }
+        }
+      },
+      
       setUnreadCount: (count) => set({ unreadCount: count }),
       
       setActiveTab: (tab) => set({ activeTab: tab }),

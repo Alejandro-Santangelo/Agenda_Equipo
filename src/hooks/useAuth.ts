@@ -80,68 +80,75 @@ const useAuthStore = create<AuthStore>()(
             return { success: false, error: 'La contraseña es requerida' }
           }
           
-          // Importar utilidades de contraseña y credenciales locales
+          // Importar utilidades
           const { verifyPassword } = await import('@/lib/password-utils')
-          const { findUserByEmail } = await import('@/lib/user-credentials')
+          const { supabase, isSupabaseConfigured } = await import('@/lib/supabase')
           
-          // Buscar usuario por email en credenciales locales
-          const userCredentials = findUserByEmail(email)
+          interface UserData {
+            id: string
+            email: string
+            name: string
+            phone?: string
+            role: 'admin' | 'member'
+            password_hash: string
+            avatar_url?: string
+            created_at?: string
+            last_seen?: string
+          }
           
+          let userCredentials: UserData | null = null
+          let passwordHash: string | null = null
+
+          // Intentar buscar en Supabase primero
+          if (supabase && isSupabaseConfigured()) {
+            const { data: supabaseUser, error } = await supabase
+              .from('team_members')
+              .select('*')
+              .eq('email', email.toLowerCase())
+              .single()
+
+            if (!error && supabaseUser) {
+              userCredentials = supabaseUser as UserData
+              passwordHash = supabaseUser.password_hash
+              console.log('✅ Usuario encontrado en Supabase')
+            }
+          }
+          
+          // Si no está en Supabase, buscar en credenciales locales
           if (!userCredentials) {
-            return { success: false, error: 'Usuario no encontrado' }
+            const { findUserByEmail } = await import('@/lib/user-credentials')
+            const localCreds = findUserByEmail(email)
+            
+            if (!localCreds) {
+              return { success: false, error: 'Usuario no encontrado' }
+            }
+            
+            userCredentials = localCreds as UserData
+            passwordHash = localCreds.password_hash
+            console.log('⚠️ Usuario encontrado en credenciales locales (no sincronizado con Supabase)')
           }
           
           // Verificar contraseña
-          const passwordIsValid = await verifyPassword(password, userCredentials.password_hash)
+          if (!passwordHash) {
+            return { success: false, error: 'Error en la configuración del usuario' }
+          }
+
+          const passwordIsValid = await verifyPassword(password, passwordHash)
           
           if (!passwordIsValid) {
             return { success: false, error: 'Contraseña incorrecta' }
           }
           
-          // Buscar datos adicionales del usuario en el store
-          const { teamMembers } = useAppStore.getState()
-          const localUser = teamMembers.find(member => member.email.toLowerCase() === email.toLowerCase())
-          
-          if (localUser) {
-            // Login exitoso con datos locales
-            const profile: Profile = {
-              id: localUser.id,
-              email: localUser.email,
-              name: localUser.name,
-              phone: localUser.phone,
-              role: localUser.role,
-              avatar_url: localUser.avatar_url,
-              created_at: localUser.created_at,
-              updated_at: localUser.last_active
-            }
-            
-            set({ 
-              currentUser: profile,
-              isAuthenticated: true,
-              loading: false 
-            })
-
-            // 🔄 SINCRONIZAR con AppStore
-            const { setCurrentUser } = useAppStore.getState()
-            const teamMember = {
-              ...localUser,
-              last_active: new Date().toISOString()
-            }
-            setCurrentUser(teamMember)
-            
-            console.log(`✅ Login exitoso para ${profile.name} (${profile.role})`)
-            return { success: true }
-          }
-          
-          // Si no se encuentra en el store, usar datos de credenciales
+          // Crear perfil del usuario
           const profile: Profile = {
             id: userCredentials.id,
             email: userCredentials.email,
             name: userCredentials.name,
             phone: userCredentials.phone,
             role: userCredentials.role,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            avatar_url: userCredentials.avatar_url,
+            created_at: userCredentials.created_at || new Date().toISOString(),
+            updated_at: userCredentials.last_seen || new Date().toISOString()
           }
           
           set({ 
@@ -150,9 +157,9 @@ const useAuthStore = create<AuthStore>()(
             loading: false 
           })
 
-          // 🔄 SINCRONIZAR con AppStore  
-          const { setCurrentUser } = useAppStore.getState()
-          const teamMember = {
+          // 🔄 SINCRONIZAR con AppStore
+          const { setCurrentUser, teamMembers, setTeamMembers } = useAppStore.getState()
+          const teamMember: TeamMember = {
             id: profile.id,
             email: profile.email,
             name: profile.name,
@@ -164,6 +171,22 @@ const useAuthStore = create<AuthStore>()(
             permissions: profile.role === 'admin' ? ADMIN_PERMISSIONS : DEFAULT_MEMBER_PERMISSIONS
           }
           setCurrentUser(teamMember)
+
+          // Actualizar en la lista de teamMembers si existe
+          const existingMemberIndex = teamMembers.findIndex(m => m.id === profile.id)
+          if (existingMemberIndex >= 0) {
+            const updatedMembers = [...teamMembers]
+            updatedMembers[existingMemberIndex] = teamMember
+            setTeamMembers(updatedMembers)
+          }
+
+          // Actualizar last_seen en Supabase
+          if (supabase && isSupabaseConfigured()) {
+            await supabase
+              .from('team_members')
+              .update({ last_seen: new Date().toISOString() })
+              .eq('id', profile.id)
+          }
           
           console.log(`✅ Login exitoso para ${profile.name} (${profile.role})`)
           return { success: true }
@@ -231,20 +254,51 @@ const useAuthStore = create<AuthStore>()(
             return { success: false, error: 'Usuario no autenticado' }
           }
 
-          // En desarrollo, actualizar localmente
+          // Actualizar en Supabase
+          const { supabase, isSupabaseConfigured } = await import('@/lib/supabase')
+          
+          if (supabase && isSupabaseConfigured()) {
+            const { error: updateError } = await supabase
+              .from('team_members')
+              .update({
+                name: updates.name,
+                email: updates.email,
+                phone: updates.phone,
+                last_seen: new Date().toISOString()
+              })
+              .eq('id', currentUser.id)
+
+            if (updateError) {
+              console.error('Error al actualizar en Supabase:', updateError)
+              return { success: false, error: 'Error al actualizar en la base de datos' }
+            }
+
+            console.log('✅ Perfil actualizado en Supabase exitosamente')
+          }
+
+          // Actualizar localmente
           const updatedUser = { ...currentUser, ...updates, updated_at: new Date().toISOString() }
           set({ currentUser: updatedUser })
           
           // Actualizar en el store del equipo también
-          const { setCurrentUser } = useAppStore.getState()
+          const { setCurrentUser, teamMembers, setTeamMembers } = useAppStore.getState()
           const teamMember = {
             ...updatedUser,
             last_active: new Date().toISOString()
           }
           setCurrentUser(teamMember)
+
+          // Actualizar en la lista de teamMembers también
+          const updatedMembers = teamMembers.map(member => 
+            member.id === currentUser.id 
+              ? { ...member, ...updates, last_active: new Date().toISOString() }
+              : member
+          )
+          setTeamMembers(updatedMembers)
           
           return { success: true }
-        } catch {
+        } catch (error) {
+          console.error('Error en updateProfile:', error)
           return { success: false, error: 'Error de conexión' }
         } finally {
           set({ loading: false })
@@ -260,10 +314,34 @@ const useAuthStore = create<AuthStore>()(
             return { success: false, error: 'Usuario no autenticado' }
           }
 
-          // En desarrollo, simular cambio exitoso
-          console.log('Cambiando contraseña para:', currentUser.email, 'Nueva contraseña:', newPassword)
+          // Hashear la nueva contraseña
+          const { hashPassword } = await import('@/lib/password-utils')
+          const newPasswordHash = await hashPassword(newPassword)
+
+          // Actualizar en Supabase
+          const { supabase, isSupabaseConfigured } = await import('@/lib/supabase')
+          
+          if (supabase && isSupabaseConfigured()) {
+            const { error: updateError } = await supabase
+              .from('team_members')
+              .update({
+                password_hash: newPasswordHash,
+                last_seen: new Date().toISOString()
+              })
+              .eq('id', currentUser.id)
+
+            if (updateError) {
+              console.error('Error al actualizar contraseña en Supabase:', updateError)
+              return { success: false, error: 'Error al actualizar la contraseña en la base de datos' }
+            }
+
+            console.log('✅ Contraseña actualizada en Supabase exitosamente')
+          }
+
+          console.log('✅ Contraseña cambiada para:', currentUser.email)
           return { success: true }
-        } catch {
+        } catch (error) {
+          console.error('Error en changePassword:', error)
           return { success: false, error: 'Error de conexión' }
         } finally {
           set({ loading: false })

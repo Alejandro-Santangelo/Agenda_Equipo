@@ -1,9 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useAuth } from '@/hooks/useAuth'
+import { syncAllDataFromSupabase, syncEssentialData } from '@/lib/sync'
 import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import BackToFilesButton from './BackToFilesButton'
@@ -22,6 +23,23 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const { isOnline, syncInProgress } = useOfflineSync()
   const { currentUser, logout } = useAuth()
+  const [initialSyncDone, setInitialSyncDone] = useState(false)
+
+  // Sincronización inicial al cargar el layout
+  useEffect(() => {
+    if (currentUser && !initialSyncDone) {
+      console.log('🚀 Iniciando sincronización inicial...')
+      
+      // Primero cargar datos esenciales (rápido)
+      syncEssentialData().then(() => {
+        // Luego cargar todo en segundo plano
+        syncAllDataFromSupabase().then(() => {
+          setInitialSyncDone(true)
+          console.log('✅ Sincronización inicial completada')
+        })
+      })
+    }
+  }, [currentUser, initialSyncDone])
 
 
 
