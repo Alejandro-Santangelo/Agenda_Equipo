@@ -65,17 +65,25 @@ export default function StatsSection() {
       // Calcular estadísticas generales
       const totalMembers = teamMembers.length
       const activeMembers = teamMembers.filter(member => {
+        if (!member.last_active) return false
         const lastActive = new Date(member.last_active)
+        if (lastActive.toString() === 'Invalid Date') return false
         return isAfter(lastActive, subDays(now, 7))
       }).length
 
       // Mensajes y archivos en el período
-      const messagesInPeriod = chatMessages.filter(msg => 
-        isAfter(new Date(msg.created_at), startDate)
-      )
-      const filesInPeriod = sharedFiles.filter(file => 
-        isAfter(new Date(file.created_at), startDate)
-      )
+      const messagesInPeriod = chatMessages.filter(msg => {
+        if (!msg.created_at) return false
+        const msgDate = new Date(msg.created_at)
+        if (msgDate.toString() === 'Invalid Date') return false
+        return isAfter(msgDate, startDate)
+      })
+      const filesInPeriod = sharedFiles.filter(file => {
+        if (!file.created_at) return false
+        const fileDate = new Date(file.created_at)
+        if (fileDate.toString() === 'Invalid Date') return false
+        return isAfter(fileDate, startDate)
+      })
 
       // Actividad por miembro
       const memberActivity = teamMembers.map(member => {
@@ -98,12 +106,16 @@ export default function StatsSection() {
         const dayEnd = endOfDay(date)
         
         const messagesThisDay = chatMessages.filter(msg => {
+          if (!msg.created_at) return false
           const msgDate = new Date(msg.created_at)
+          if (msgDate.toString() === 'Invalid Date') return false
           return isAfter(msgDate, dayStart) && isBefore(msgDate, dayEnd)
         }).length
 
         const filesThisDay = sharedFiles.filter(file => {
+          if (!file.created_at) return false
           const fileDate = new Date(file.created_at)
+          if (fileDate.toString() === 'Invalid Date') return false
           return isAfter(fileDate, dayStart) && isBefore(fileDate, dayEnd)
         }).length
 

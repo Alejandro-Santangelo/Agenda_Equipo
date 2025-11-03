@@ -42,11 +42,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, compact = false }) => {
           }`}>
             {task.title}
           </p>
-          {task.due_date && (
-            <p className="text-xs text-gray-500">
-              Vence: {new Date(task.due_date).toLocaleDateString()}
-            </p>
-          )}
+          {task.due_date && (() => {
+            const dueDate = new Date(task.due_date);
+            return dueDate.toString() !== 'Invalid Date' ? (
+              <p className="text-xs text-gray-500">
+                Vence: {dueDate.toLocaleDateString()}
+              </p>
+            ) : null;
+          })()}
         </div>
 
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
@@ -87,12 +90,15 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, compact = false }) => {
                 </span>
               </div>
               
-              {task.due_date && (
-                <div className="flex items-center">
-                  <Calendar className="w-3 h-3 mr-1" />
-                  <span>Vence: {new Date(task.due_date).toLocaleDateString()}</span>
-                </div>
-              )}
+              {task.due_date && (() => {
+                const dueDate = new Date(task.due_date);
+                return dueDate.toString() !== 'Invalid Date' ? (
+                  <div className="flex items-center">
+                    <Calendar className="w-3 h-3 mr-1" />
+                    <span>Vence: {dueDate.toLocaleDateString()}</span>
+                  </div>
+                ) : null;
+              })()}
               
               {task.assigned_to && (
                 <div className="flex items-center">

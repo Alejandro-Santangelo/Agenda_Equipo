@@ -411,13 +411,19 @@ export default function ProfileScreen() {
           <div>
             <span className="font-medium text-gray-700">Cuenta creada:</span>
             <span className="ml-2 text-gray-600">
-              {currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : 'N/A'}
+              {currentUser?.created_at && (() => {
+                const createdDate = new Date(currentUser.created_at);
+                return createdDate.toString() !== 'Invalid Date' ? createdDate.toLocaleDateString() : 'N/A';
+              })() || 'N/A'}
             </span>
           </div>
           <div>
             <span className="font-medium text-gray-700">Última actualización:</span>
             <span className="ml-2 text-gray-600">
-              {currentUser?.updated_at ? new Date(currentUser.updated_at).toLocaleDateString() : 'N/A'}
+              {currentUser?.updated_at && (() => {
+                const updatedDate = new Date(currentUser.updated_at);
+                return updatedDate.toString() !== 'Invalid Date' ? updatedDate.toLocaleDateString() : 'N/A';
+              })() || 'N/A'}
             </span>
           </div>
         </div>

@@ -248,7 +248,12 @@ export default function FilesSection() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <span>Por {getUserName(file.uploaded_by)}</span>
                         <span>•</span>
-                        <span>{format(new Date(file.created_at), 'dd MMM yyyy', { locale: es })}</span>
+                        {file.created_at && (() => {
+                          const createdDate = new Date(file.created_at);
+                          return createdDate.toString() !== 'Invalid Date' 
+                            ? <span>{format(createdDate, 'dd MMM yyyy', { locale: es })}</span>
+                            : null;
+                        })()}
                         {file.size && (
                           <>
                             <span>•</span>

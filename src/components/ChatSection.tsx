@@ -171,7 +171,11 @@ export default function ChatSection() {
 
   // Agrupar mensajes por fecha
   const groupedMessages = chatMessages.reduce((groups: Record<string, typeof chatMessages>, message) => {
-    const date = format(new Date(message.created_at), 'yyyy-MM-dd')
+    if (!message.created_at) return groups
+    const msgDate = new Date(message.created_at)
+    if (msgDate.toString() === 'Invalid Date') return groups
+    
+    const date = format(msgDate, 'yyyy-MM-dd')
     if (!groups[date]) {
       groups[date] = []
     }
