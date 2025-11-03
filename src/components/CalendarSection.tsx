@@ -208,28 +208,61 @@ export default function CalendarSection() {
               </div>
               
               <div className="grid grid-cols-7 gap-2">
-                {Array.from({ length: 35 }, (_, index) => {
-                  const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), index - 6)
-                  const isCurrentMonth = date.getMonth() === selectedDate.getMonth()
-                  const isToday = date.toDateString() === new Date().toDateString()
-                  const hasEvents = events.some(event => 
-                    new Date(event.start_date).toDateString() === date.toDateString()
-                  )
+                {(() => {
+                  // Calcular el primer día del mes y su día de la semana
+                  const firstDayOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+                  const firstDayWeekday = firstDayOfMonth.getDay() // 0 = Domingo, 6 = Sábado
                   
-                  return (
-                    <div
-                      key={index}
-                      className={`
-                        h-10 flex items-center justify-center text-sm rounded cursor-pointer
-                        ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}
-                        ${isToday ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}
-                        ${hasEvents && !isToday ? 'bg-blue-100 text-blue-900' : ''}
-                      `}
-                    >
-                      {date.getDate()}
-                    </div>
-                  )
-                })}
+                  // Calcular cuántos días tiene el mes
+                  const daysInMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate()
+                  
+                  // Días del mes anterior que se muestran
+                  const prevMonthDays = firstDayWeekday
+                  const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0)
+                  const daysInPrevMonth = prevMonth.getDate()
+                  
+                  // Total de celdas
+                  const totalCells = 35
+                  
+                  return Array.from({ length: totalCells }, (_, index) => {
+                    let date: Date
+                    let isCurrentMonth = false
+                    
+                    if (index < prevMonthDays) {
+                      // Días del mes anterior
+                      const day = daysInPrevMonth - prevMonthDays + index + 1
+                      date = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, day)
+                    } else if (index < prevMonthDays + daysInMonth) {
+                      // Días del mes actual
+                      const day = index - prevMonthDays + 1
+                      date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day)
+                      isCurrentMonth = true
+                    } else {
+                      // Días del mes siguiente
+                      const day = index - prevMonthDays - daysInMonth + 1
+                      date = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, day)
+                    }
+                    
+                    const isToday = date.toDateString() === new Date().toDateString()
+                    const hasEvents = events.some(event => 
+                      new Date(event.start_date).toDateString() === date.toDateString()
+                    )
+                    
+                    return (
+                      <div
+                        key={index}
+                        className={`
+                          h-10 flex items-center justify-center text-sm rounded cursor-pointer
+                          ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}
+                          ${isToday ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}
+                          ${hasEvents && !isToday ? 'bg-blue-100 text-blue-900' : ''}
+                        `}
+                      >
+                        {date.getDate()}
+                      </div>
+                    )
+                  })
+                })()}
               </div>
             </div>
           </div>
