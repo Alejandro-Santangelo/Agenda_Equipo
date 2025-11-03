@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { TeamMember, SharedFile, ChatMessage } from './supabase'
-import { DEFAULT_MEMBER_PERMISSIONS, ADMIN_PERMISSIONS } from '@/types/permissions'
+import { DEFAULT_MEMBER_PERMISSIONS } from '@/types/permissions'
 
 interface AppState {
   // User state
@@ -45,17 +45,8 @@ interface AppState {
   setMobileMenuOpen: (open: boolean) => void
 }
 
-// Función para obtener los miembros por defecto
+// Función para obtener los miembros por defecto (solo los que existen en Supabase)
 const getDefaultMembers = () => [
-  {
-    id: '1',
-    name: 'Paula',
-    email: 'paula@equipo.com',
-    role: 'admin' as const,
-    created_at: new Date().toISOString(),
-    last_active: new Date().toISOString(),
-    permissions: ADMIN_PERMISSIONS,
-  },
   {
     id: '2',
     name: 'Gabi',
