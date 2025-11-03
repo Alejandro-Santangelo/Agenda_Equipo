@@ -157,7 +157,7 @@ export const useAppStore = create<AppState>()(
               set({ sharedFiles: serverFiles })
               console.log('✅ Archivos sincronizados desde Supabase')
             }
-          } catch (error) {
+          } catch {
             console.log('📱 Usando archivos locales')
           }
         }
@@ -187,7 +187,7 @@ export const useAppStore = create<AppState>()(
             if (!error) {
               console.log('✅ Archivo guardado en Supabase')
             }
-          } catch (error) {
+          } catch {
             console.log('📱 Archivo guardado localmente, se sincronizará después')
           }
         }
@@ -205,7 +205,7 @@ export const useAppStore = create<AppState>()(
           try {
             await supabase.from('shared_files').delete().eq('id', fileId)
             console.log('✅ Archivo eliminado de Supabase')
-          } catch (error) {
+          } catch {
             console.log('📱 Archivo eliminado localmente, se sincronizará después')
           }
         }
@@ -241,7 +241,7 @@ export const useAppStore = create<AppState>()(
               set({ chatMessages: mappedMessages })
               console.log('✅ Mensajes sincronizados desde Supabase')
             }
-          } catch (error) {
+          } catch {
             console.log('📱 Usando mensajes locales')
           }
         }
@@ -268,7 +268,7 @@ export const useAppStore = create<AppState>()(
             if (!error) {
               console.log('✅ Mensaje guardado en Supabase')
             }
-          } catch (error) {
+          } catch {
             console.log('📱 Mensaje guardado localmente, se sincronizará después')
           }
         }
@@ -309,6 +309,85 @@ export const useAppStore = create<AppState>()(
     }
   )
 )
+
+// 🔄 Configurar Realtime para archivos y chat
+if (typeof window !== 'undefined') {
+  (async () => {
+    const { supabase, isSupabaseConfigured } = await import('./supabase')
+    
+    if (supabase && isSupabaseConfigured()) {
+      // Subscripción a archivos compartidos
+      supabase
+        .channel('files-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'shared_files' },
+          (payload) => {
+            const store = useAppStore.getState()
+            
+            if (payload.eventType === 'INSERT') {
+              const newFile = payload.new as Record<string, unknown>
+              const exists = store.sharedFiles.find(f => f.id === newFile.id)
+              if (!exists) {
+                const mappedFile = {
+                  id: newFile.id as string,
+                  name: newFile.file_name as string,
+                  type: newFile.file_type === 'link' ? 'link' as const : 'upload' as const,
+                  file_type: (newFile.mime_type as string) || 'application/octet-stream',
+                  size: newFile.file_size as number,
+                  uploaded_by: newFile.uploaded_by as string,
+                  drive_url: newFile.url as string,
+                  shared_with: [],
+                  created_at: newFile.created_at as string,
+                  comments: []
+                }
+                store.sharedFiles = [...store.sharedFiles, mappedFile]
+                useAppStore.setState({ sharedFiles: store.sharedFiles })
+                console.log('🔄 Nuevo archivo recibido en tiempo real')
+              }
+            } else if (payload.eventType === 'DELETE') {
+              const deletedId = (payload.old as Record<string, unknown>).id as string
+              store.sharedFiles = store.sharedFiles.filter(f => f.id !== deletedId)
+              useAppStore.setState({ sharedFiles: store.sharedFiles })
+              console.log('🔄 Archivo eliminado en tiempo real')
+            }
+          }
+        )
+        .subscribe()
+
+      // Subscripción a mensajes de chat
+      supabase
+        .channel('chat-changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+          (payload) => {
+            const store = useAppStore.getState()
+            const newMessage = payload.new as Record<string, unknown>
+            
+            const exists = store.chatMessages.find(m => m.id === newMessage.id)
+            if (!exists) {
+              const mappedMessage = {
+                id: newMessage.id as string,
+                message: newMessage.message as string,
+                user_id: newMessage.sent_by as string,
+                user_name: store.teamMembers.find(m => m.id === newMessage.sent_by)?.name || 'Usuario',
+                created_at: newMessage.created_at as string,
+                edited_at: newMessage.edited_at as string | undefined,
+                file_attachments: []
+              }
+              store.chatMessages = [...store.chatMessages, mappedMessage]
+              useAppStore.setState({ chatMessages: store.chatMessages })
+              console.log('🔄 Nuevo mensaje recibido en tiempo real')
+            }
+          }
+        )
+        .subscribe()
+
+      console.log('✅ Supabase Realtime activado para files y chat')
+    }
+  })()
+}
 
 // Exportar también como useStore para compatibilidad
 export const useStore = useAppStore

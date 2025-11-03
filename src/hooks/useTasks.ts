@@ -307,3 +307,76 @@ export const useTasks = create<TaskStore>()(
     }
   )
 )
+
+// 🔄 Configurar Realtime para sincronización automática
+if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
+  // Subscripción a cambios en tasks
+  const tasksChannel = supabase
+    .channel('tasks-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tasks' },
+      (payload) => {
+        const store = useTasks.getState()
+        
+        if (payload.eventType === 'INSERT') {
+          const newTask = payload.new as Task
+          const exists = store.tasks.find(t => t.id === newTask.id)
+          if (!exists) {
+            store.tasks = [...store.tasks, newTask]
+            useTasks.setState({ tasks: store.tasks })
+            console.log('🔄 Nueva tarea recibida en tiempo real')
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedTask = payload.new as Task
+          store.tasks = store.tasks.map(t => 
+            t.id === updatedTask.id ? updatedTask : t
+          )
+          useTasks.setState({ tasks: store.tasks })
+          console.log('🔄 Tarea actualizada en tiempo real')
+        } else if (payload.eventType === 'DELETE') {
+          const deletedId = (payload.old as Task).id
+          store.tasks = store.tasks.filter(t => t.id !== deletedId)
+          useTasks.setState({ tasks: store.tasks })
+          console.log('🔄 Tarea eliminada en tiempo real')
+        }
+      }
+    )
+    .subscribe()
+
+  // Subscripción a cambios en projects
+  const projectsChannel = supabase
+    .channel('projects-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'projects' },
+      (payload) => {
+        const store = useTasks.getState()
+        
+        if (payload.eventType === 'INSERT') {
+          const newProject = payload.new as Project
+          const exists = store.projects.find(p => p.id === newProject.id)
+          if (!exists) {
+            store.projects = [...store.projects, newProject]
+            useTasks.setState({ projects: store.projects })
+            console.log('🔄 Nuevo proyecto recibido en tiempo real')
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedProject = payload.new as Project
+          store.projects = store.projects.map(p => 
+            p.id === updatedProject.id ? updatedProject : p
+          )
+          useTasks.setState({ projects: store.projects })
+          console.log('🔄 Proyecto actualizado en tiempo real')
+        } else if (payload.eventType === 'DELETE') {
+          const deletedId = (payload.old as Project).id
+          store.projects = store.projects.filter(p => p.id !== deletedId)
+          useTasks.setState({ projects: store.projects })
+          console.log('🔄 Proyecto eliminado en tiempo real')
+        }
+      }
+    )
+    .subscribe()
+
+  console.log('✅ Supabase Realtime activado para tasks y projects')
+}

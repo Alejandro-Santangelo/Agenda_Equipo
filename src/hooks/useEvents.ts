@@ -175,3 +175,41 @@ export const useEvents = create<EventStore>()(
     }
   )
 )
+
+// 🔄 Configurar Realtime para eventos
+if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
+  const eventsChannel = supabase
+    .channel('events-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'events' },
+      (payload) => {
+        const store = useEvents.getState()
+        
+        if (payload.eventType === 'INSERT') {
+          const newEvent = payload.new as Event
+          const exists = store.events.find(e => e.id === newEvent.id)
+          if (!exists) {
+            store.events = [...store.events, newEvent]
+            useEvents.setState({ events: store.events })
+            console.log('🔄 Nuevo evento recibido en tiempo real')
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedEvent = payload.new as Event
+          store.events = store.events.map(e => 
+            e.id === updatedEvent.id ? updatedEvent : e
+          )
+          useEvents.setState({ events: store.events })
+          console.log('🔄 Evento actualizado en tiempo real')
+        } else if (payload.eventType === 'DELETE') {
+          const deletedId = (payload.old as Event).id
+          store.events = store.events.filter(e => e.id !== deletedId)
+          useEvents.setState({ events: store.events })
+          console.log('🔄 Evento eliminado en tiempo real')
+        }
+      }
+    )
+    .subscribe()
+
+  console.log('✅ Supabase Realtime activado para events')
+}
