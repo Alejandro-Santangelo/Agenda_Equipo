@@ -215,10 +215,8 @@ El Equipo`)
       
       // Agregar localmente primero
       console.log('💾 Agregando miembro al estado local...')
-      // @ts-expect-error - Conflicto temporal de tipos con permissions
       addTeamMember(newMemberData)
       console.log('💾 Guardando miembro en IndexedDB...')
-      // @ts-expect-error - Conflicto temporal de tipos con permissions
       await offlineDB.saveMembers([...teamMembers, newMemberData])
       console.log('✅ Miembro guardado localmente')
 
