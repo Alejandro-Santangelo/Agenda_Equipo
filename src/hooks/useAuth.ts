@@ -139,6 +139,11 @@ const useAuthStore = create<AuthStore>()(
             return { success: false, error: 'Contraseña incorrecta' }
           }
           
+          // ⚠️ ADVERTIR si es cuenta demo
+          if (email.endsWith('@equipo.com')) {
+            console.warn(`⚠️ Cuenta demo: ${email}. Recuerda actualizar tu perfil con tu email real.`)
+          }
+          
           // Crear perfil del usuario
           const profile: Profile = {
             id: userCredentials.id,
@@ -203,6 +208,11 @@ const useAuthStore = create<AuthStore>()(
         try {
           set({ loading: true })
           
+          // 🚫 VALIDAR: NO permitir emails @equipo.com (solo cuentas reales)
+          if (email.toLowerCase().endsWith('@equipo.com')) {
+            return { success: false, error: 'No se permiten cuentas @equipo.com. Usa un email real.' }
+          }
+          
           // Verificar que solo admins puedan registrar nuevos usuarios
           const { isAdmin } = get()
           if (!isAdmin()) {
@@ -254,9 +264,83 @@ const useAuthStore = create<AuthStore>()(
             return { success: false, error: 'Usuario no autenticado' }
           }
 
-          // Actualizar en Supabase
           const { supabase, isSupabaseConfigured } = await import('@/lib/supabase')
           
+          // 🔥 DETECTAR SI ES CUENTA DEMO Y SE ESTÁ CAMBIANDO A EMAIL REAL
+          const oldEmail = currentUser.email
+          const newEmail = updates.email
+          const isDemoAccount = oldEmail?.endsWith('@equipo.com')
+          const isChangingToRealEmail = newEmail && !newEmail.endsWith('@equipo.com')
+          
+          if (isDemoAccount && isChangingToRealEmail) {
+            console.log(`🔥 Cuenta demo detectada: ${oldEmail} → ${newEmail}`)
+            
+            // Eliminar cuenta demo de Supabase
+            if (supabase && isSupabaseConfigured()) {
+              // Eliminar de team_members
+              await supabase
+                .from('team_members')
+                .delete()
+                .eq('email', oldEmail)
+              
+              // Eliminar de auth.users si existe
+              const { data: authUser } = await supabase.auth.admin.listUsers()
+              const demoUser = authUser?.users?.find(u => u.email === oldEmail)
+              if (demoUser) {
+                await supabase.auth.admin.deleteUser(demoUser.id)
+              }
+              
+              console.log(`✅ Cuenta demo ${oldEmail} eliminada de Supabase`)
+            }
+            
+            // Crear nueva cuenta con email real
+            if (supabase && isSupabaseConfigured()) {
+              const newId = crypto.randomUUID()
+              
+              const { error: insertError } = await supabase
+                .from('team_members')
+                .insert({
+                  id: newId,
+                  name: updates.name || currentUser.name,
+                  email: newEmail,
+                  phone: updates.phone || currentUser.phone,
+                  role: currentUser.role,
+                  avatar_url: currentUser.avatar_url,
+                  created_at: new Date().toISOString(),
+                  last_seen: new Date().toISOString()
+                })
+              
+              if (insertError) {
+                console.error('Error al crear nueva cuenta:', insertError)
+                return { success: false, error: 'Error al crear nueva cuenta' }
+              }
+              
+              // Actualizar usuario actual con nuevo ID
+              const updatedUser = { 
+                ...currentUser, 
+                id: newId,
+                email: newEmail,
+                name: updates.name || currentUser.name,
+                phone: updates.phone || currentUser.phone,
+                updated_at: new Date().toISOString() 
+              }
+              set({ currentUser: updatedUser })
+              
+              const { setCurrentUser, teamMembers, setTeamMembers } = useAppStore.getState()
+              setCurrentUser({ ...updatedUser, last_active: new Date().toISOString() })
+              
+              // Remover cuenta demo y agregar cuenta real en teamMembers
+              const updatedMembers = teamMembers
+                .filter(m => m.email !== oldEmail)
+                .concat([{ ...updatedUser, last_active: new Date().toISOString() }])
+              setTeamMembers(updatedMembers)
+              
+              console.log(`🎉 Migración exitosa: ${oldEmail} → ${newEmail}`)
+              return { success: true }
+            }
+          }
+
+          // 📝 ACTUALIZACIÓN NORMAL (no es cuenta demo o no cambia email)
           if (supabase && isSupabaseConfigured()) {
             const { error: updateError } = await supabase
               .from('team_members')

@@ -29,6 +29,7 @@ export default function CalendarSection() {
 
   // Filtrar eventos por fecha próxima
   const upcomingEvents = events
+    .filter(event => event.start_date && new Date(event.start_date).toString() !== 'Invalid Date')
     .filter(event => new Date(event.start_date) >= new Date())
     .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
     .slice(0, 10)
@@ -36,12 +37,16 @@ export default function CalendarSection() {
   const getEventStats = () => {
     const today = new Date()
     const todayEvents = events.filter(event => {
+      if (!event.start_date) return false
       const eventDate = new Date(event.start_date)
+      if (eventDate.toString() === 'Invalid Date') return false
       return eventDate.toDateString() === today.toDateString()
     })
     
     const thisWeekEvents = events.filter(event => {
+      if (!event.start_date) return false
       const eventDate = new Date(event.start_date)
+      if (eventDate.toString() === 'Invalid Date') return false
       const weekFromNow = new Date()
       weekFromNow.setDate(weekFromNow.getDate() + 7)
       return eventDate >= today && eventDate <= weekFromNow
@@ -161,12 +166,14 @@ export default function CalendarSection() {
                       )}
                       
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <div className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          <span>
-                            {format(new Date(event.start_date), 'PPP p', { locale: es })}
-                          </span>
-                        </div>
+                        {event.start_date && (
+                          <div className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            <span>
+                              {format(new Date(event.start_date), 'PPP p', { locale: es })}
+                            </span>
+                          </div>
+                        )}
                         
                         {event.end_date && (
                           <div className="flex items-center">
@@ -276,9 +283,12 @@ export default function CalendarSection() {
                     }
                     
                     const isToday = date.toDateString() === new Date().toDateString()
-                    const hasEvents = events.some(event => 
-                      new Date(event.start_date).toDateString() === date.toDateString()
-                    )
+                    const hasEvents = events.some(event => {
+                      if (!event.start_date) return false
+                      const eventDate = new Date(event.start_date)
+                      if (eventDate.toString() === 'Invalid Date') return false
+                      return eventDate.toDateString() === date.toDateString()
+                    })
                     
                     return (
                       <div

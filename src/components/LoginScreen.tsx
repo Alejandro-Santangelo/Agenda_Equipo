@@ -181,13 +181,15 @@ export default function LoginScreen() {
           </form>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">🔑 Credenciales de Prueba:</h3>
-          <div className="text-xs text-blue-800 space-y-1">
-            <div><strong>Paula (Admin):</strong> paula@equipo.com / 1111</div>
-            <div><strong>Gabi (Miembro):</strong> gabi@equipo.com / 3333</div>
-            <div><strong>Caro (Miembro):</strong> caro@equipo.com / 2222</div>
+        {/* Demo Credentials - TEMPORAL */}
+        <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <h3 className="text-sm font-medium text-amber-900 mb-2">⚠️ Acceso Temporal:</h3>
+          <div className="text-xs text-amber-800 space-y-1">
+            <div><strong>Gabi:</strong> gabi@equipo.com / 3333</div>
+            <div><strong>Caro:</strong> caro@equipo.com / 2222</div>
+            <div className="mt-2 text-amber-700 italic">
+              Actualiza tu perfil con tu email real después del primer ingreso
+            </div>
           </div>
         </div>
 

@@ -11,15 +11,8 @@ export interface UserCredentials {
 }
 
 // Hashes generados con bcrypt (salt rounds: 12)
+// SOLO usuarios demo temporales - se eliminarán cuando actualicen a emails reales
 export const LOCAL_USER_CREDENTIALS: UserCredentials[] = [
-  {
-    id: '1',
-    email: 'paula@equipo.com',
-    password_hash: '$2b$12$4gL5GHOlho4KgW8zXtBt9.BAUJfFI3PIfXCF/0XOVrq6/QUNRFrJ.',
-    name: 'Paula',
-    role: 'admin',
-    phone: '+54 9 11 1111-1111'
-  },
   {
     id: '2', 
     email: 'gabi@equipo.com',
@@ -38,8 +31,7 @@ export const LOCAL_USER_CREDENTIALS: UserCredentials[] = [
   }
 ]
 
-// Credenciales en texto plano para referencia (NO usar en producción)
-// Paula: 1111
+// Credenciales demo en texto plano para referencia (se eliminarán al actualizar perfil)
 // Gabi: 3333  
 // Caro: 2222
 

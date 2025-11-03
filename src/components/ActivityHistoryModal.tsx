@@ -177,12 +177,14 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
                         </p>
                       )}
 
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        <span>
-                          {format(new Date(activity.created_at), "PPP 'a las' p", { locale: es })}
-                        </span>
-                      </div>
+                      {activity.created_at && (
+                        <div className="flex items-center text-xs text-gray-500">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          <span>
+                            {format(new Date(activity.created_at), "PPP 'a las' p", { locale: es })}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Metadatos adicionales si existen */}
                       {activity.metadata && Object.keys(activity.metadata).length > 0 && (
