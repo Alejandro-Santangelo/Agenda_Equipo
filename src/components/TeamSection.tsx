@@ -223,10 +223,21 @@ El Equipo`)
       // Sincronizar con servidor solo si está configurado
       if (isOnline && supabase && isSupabaseConfigured()) {
         try {
-          await supabase.from('team_members').insert([newMemberData])
-          console.log('✅ Miembro agregado exitosamente a la base de datos con credenciales')
+          const { error } = await supabase.from('team_members').insert([newMemberData])
+          
+          if (error) {
+            console.error('❌ Error de Supabase al insertar miembro:', error)
+            console.error('❌ Código de error:', error.code)
+            console.error('❌ Mensaje:', error.message)
+            console.error('❌ Detalles:', error.details)
+            toast.error(`Error al guardar en base de datos: ${error.message}`)
+            await addOperationToQueue('member', newMemberData)
+            console.log('📋 Miembro agregado a la cola de sincronización')
+          } else {
+            console.log('✅ Miembro agregado exitosamente a la base de datos con credenciales')
+          }
         } catch (error) {
-          console.error('Error adding team member to database:', error)
+          console.error('❌ Error inesperado al agregar miembro:', error)
           await addOperationToQueue('member', newMemberData)
           console.log('📋 Miembro agregado a la cola de sincronización')
         }
