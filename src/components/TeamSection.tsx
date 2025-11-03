@@ -401,17 +401,23 @@ El Equipo`)
       // Crear archivo CSV para miembros
       const csvMembers = [
         'Nombre,Email,Teléfono,Rol,Fecha de Ingreso,Última Actividad',
-        ...teamMembers.map(member => 
-          `"${member.name}","${member.email}","${member.phone || 'No especificado'}","${member.role}","${new Date(member.created_at).toLocaleDateString()}","${new Date(member.last_active).toLocaleString()}"`
-        )
+        ...teamMembers.map(member => {
+          const createdDate = new Date(member.created_at);
+          const lastActiveDate = new Date(member.last_active);
+          const createdStr = createdDate.toString() !== 'Invalid Date' ? createdDate.toLocaleDateString() : 'N/A';
+          const lastActiveStr = lastActiveDate.toString() !== 'Invalid Date' ? lastActiveDate.toLocaleString() : 'N/A';
+          return `"${member.name}","${member.email}","${member.phone || 'No especificado'}","${member.role}","${createdStr}","${lastActiveStr}"`;
+        })
       ].join('\n')
 
       // Crear archivo CSV para archivos
       const csvFiles = [
         'Nombre Archivo,Tipo,Tamaño,Subido Por,Fecha',
-        ...sharedFiles.map(file => 
-          `"${file.name}","${file.file_type}","${file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}","${teamMembers.find(m => m.id === file.uploaded_by)?.name || 'Usuario eliminado'}","${new Date(file.created_at).toLocaleString()}"`
-        )
+        ...sharedFiles.map(file => {
+          const fileDate = new Date(file.created_at);
+          const fileDateStr = fileDate.toString() !== 'Invalid Date' ? fileDate.toLocaleString() : 'N/A';
+          return `"${file.name}","${file.file_type}","${file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}","${teamMembers.find(m => m.id === file.uploaded_by)?.name || 'Usuario eliminado'}","${fileDateStr}"`;
+        })
       ].join('\n')
 
       // Crear archivo TXT para chat
