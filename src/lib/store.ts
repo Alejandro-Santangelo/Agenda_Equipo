@@ -34,6 +34,7 @@ interface AppState {
   setSharedFiles: (files: SharedFile[]) => Promise<void>
   addSharedFile: (file: SharedFile) => Promise<void>
   removeSharedFile: (fileId: string) => Promise<void>
+  updateSharedFile: (fileId: string, updates: Partial<SharedFile>) => Promise<void>
   updateUploadProgress: (fileId: string, progress: number) => void
   
   setChatMessages: (messages: ChatMessage[]) => Promise<void>
@@ -94,8 +95,20 @@ export const useAppStore = create<AppState>()(
           console.error('Error updating member in offline storage:', error)
         }
         
-        // TODO: Sincronizar con Supabase cuando esté configurado
-        // await addOperationToQueue('member_update', { id: memberId, permissions })
+        // Sincronizar con Supabase
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            const { error } = await supabase
+              .from('team_members')
+              .update({ permissions })
+              .eq('id', memberId)
+            
+            if (error) throw error
+          } catch (error) {
+            console.error('Error updating permissions in Supabase:', error)
+          }
+        }
       },
       
       setSharedFiles: async (files) => {
@@ -164,6 +177,46 @@ export const useAppStore = create<AppState>()(
             console.log('✅ Archivo eliminado de Supabase')
           } catch {
             console.log('📱 Archivo eliminado localmente, se sincronizará después')
+          }
+        }
+      },
+      
+      updateSharedFile: async (fileId, updates) => {
+        const { offlineDB } = await import('@/lib/offline')
+        
+        // Actualizar localmente primero (inmediato)
+        set((state) => ({
+          sharedFiles: state.sharedFiles.map(file =>
+            file.id === fileId ? { ...file, ...updates } : file
+          )
+        }))
+        
+        // Guardar en IndexedDB
+        try {
+          const currentFiles = await offlineDB.getFiles()
+          const updatedFiles = currentFiles.map((file: SharedFile) =>
+            file.id === fileId ? { ...file, ...updates } : file
+          )
+          for (const file of updatedFiles) {
+            await offlineDB.saveFile(file)
+          }
+        } catch (error) {
+          console.error('Error updating file in offline storage:', error)
+        }
+        
+        // Sincronizar con Supabase
+        const { supabase, isSupabaseConfigured } = await import('./supabase')
+        if (supabase && isSupabaseConfigured()) {
+          try {
+            const { error } = await supabase
+              .from('shared_files')
+              .update(updates)
+              .eq('id', fileId)
+            
+            if (error) throw error
+            console.log('✅ Archivo actualizado en Supabase')
+          } catch (error) {
+            console.error('Error updating file in Supabase:', error)
           }
         }
       },
