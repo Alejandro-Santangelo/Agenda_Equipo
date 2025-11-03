@@ -65,8 +65,9 @@ export default function StatsSection() {
       // Calcular estadísticas generales
       const totalMembers = teamMembers.length
       const activeMembers = teamMembers.filter(member => {
-        if (!member.last_active) return false
-        const lastActive = new Date(member.last_active)
+        const lastActiveValue = member.last_seen || member.last_active;
+        if (!lastActiveValue) return false
+        const lastActive = new Date(lastActiveValue)
         if (lastActive.toString() === 'Invalid Date') return false
         return isAfter(lastActive, subDays(now, 7))
       }).length
@@ -89,10 +90,11 @@ export default function StatsSection() {
       const memberActivity = teamMembers.map(member => {
         const memberMessages = messagesInPeriod.filter(msg => msg.user_id === member.id)
         const memberFiles = filesInPeriod.filter(file => file.uploaded_by === member.id)
+        const lastActiveValue = member.last_seen || member.last_active || new Date().toISOString();
         
         return {
           name: member.name,
-          lastActive: member.last_active,
+          lastActive: lastActiveValue,
           messageCount: memberMessages.length,
           fileCount: memberFiles.length
         }
@@ -167,7 +169,7 @@ export default function StatsSection() {
         name: m.name,
         email: m.email,
         role: m.role,
-        lastActive: m.last_active,
+        lastActive: m.last_seen || m.last_active || '',
         createdAt: m.created_at
       }))
     }
