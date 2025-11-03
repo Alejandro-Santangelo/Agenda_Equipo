@@ -3,15 +3,18 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { useActivityLog } from '@/hooks/useActivityLog'
 import { offlineDB } from '@/lib/offline'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import { Send, Smile, Paperclip, MoreVertical } from 'lucide-react'
+import { Send, Smile, Paperclip, MoreVertical, History } from 'lucide-react'
+import ActivityHistoryModal from './ActivityHistoryModal'
 import { format, isToday, isYesterday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 
 export default function ChatSection() {
   const [newMessage, setNewMessage] = useState('')
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   
@@ -25,6 +28,7 @@ export default function ChatSection() {
   } = useAppStore()
   
   const { isOnline, addOperationToQueue } = useOfflineSync()
+  const { logActivity } = useActivityLog()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -56,6 +60,20 @@ export default function ChatSection() {
     // Añadir mensaje localmente
     addChatMessage(messageData)
     await offlineDB.saveMessage(messageData)
+    
+    // 📝 Registrar actividad de envío
+    await logActivity({
+      user_id: currentUser.id,
+      user_name: currentUser.name,
+      action_type: 'send',
+      entity_type: 'message',
+      entity_id: messageData.id,
+      entity_name: `Mensaje: ${newMessage.trim().substring(0, 50)}...`,
+      description: `${currentUser.name} envió un mensaje`,
+      metadata: {
+        message_preview: newMessage.trim().substring(0, 100)
+      }
+    })
 
     // Enviar al servidor si hay conexión y Supabase configurado
     if (isOnline && supabase && isSupabaseConfigured()) {
@@ -198,6 +216,14 @@ export default function ChatSection() {
             ))}
           </div>
           
+          <button
+            onClick={() => setShowHistoryModal(true)}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Ver historial"
+          >
+            <History size={16} />
+          </button>
+          
           <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
             <MoreVertical size={16} />
           </button>
@@ -335,6 +361,14 @@ export default function ChatSection() {
         
 
       </div>
+
+      {/* Modal de historial de actividades */}
+      <ActivityHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        entityType="message"
+        entityName="Mensajes"
+      />
     </div>
   )
 }

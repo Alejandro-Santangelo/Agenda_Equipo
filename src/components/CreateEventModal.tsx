@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { Event, useEvents } from '@/hooks/useEvents';
 import { useAuth } from '@/hooks/useAuth';
+import { useActivityLog } from '@/hooks/useActivityLog';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 }) => {
   const { addEvent, updateEvent } = useEvents();
   const { currentUser } = useAuth();
+  const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: event?.title || '',
@@ -46,8 +48,44 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       if (event) {
         await updateEvent(event.id, eventData);
+        
+        // 📝 Registrar actividad de actualización
+        await logActivity({
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action_type: 'update',
+          entity_type: 'event',
+          entity_id: event.id,
+          entity_name: formData.title,
+          description: `${currentUser.name} actualizó el evento "${formData.title}"`,
+          metadata: {
+            event_type: formData.event_type,
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            previous_type: event.event_type,
+            previous_start: event.start_date
+          }
+        });
       } else {
+        // Generar ID para el nuevo evento
+        const newEventId = crypto.randomUUID();
         await addEvent(eventData);
+        
+        // 📝 Registrar actividad de creación
+        await logActivity({
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action_type: 'create',
+          entity_type: 'event',
+          entity_id: newEventId,
+          entity_name: formData.title,
+          description: `${currentUser.name} creó el evento "${formData.title}"`,
+          metadata: {
+            event_type: formData.event_type,
+            start_date: formData.start_date,
+            end_date: formData.end_date
+          }
+        });
       }
       
       onClose();

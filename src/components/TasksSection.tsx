@@ -1,14 +1,16 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Calendar, Search } from 'lucide-react'
+import { Plus, Calendar, Search, History } from 'lucide-react'
 import { useTasks } from '@/hooks/useTasks'
 import TaskItem from './TaskItem'
 import CreateTaskModal from './CreateTaskModal'
+import ActivityHistoryModal from './ActivityHistoryModal'
 
 export default function TasksSection() {
   const { tasks, fetchTasks } = useTasks()
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
@@ -49,13 +51,23 @@ export default function TasksSection() {
             <h1 className="text-2xl font-bold text-gray-900">Tareas</h1>
             <p className="text-sm text-gray-600">Gestiona las tareas del equipo</p>
           </div>
-          <button
-            onClick={handleAddTask}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva tarea
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+              title="Ver historial de tareas"
+            >
+              <History className="w-4 h-4 mr-2" />
+              Historial
+            </button>
+            <button
+              onClick={handleAddTask}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva tarea
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -143,6 +155,14 @@ export default function TasksSection() {
       <CreateTaskModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+      />
+
+      {/* Modal de historial */}
+      <ActivityHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        entityType="task"
+        entityName="Tareas"
       />
     </div>
   )

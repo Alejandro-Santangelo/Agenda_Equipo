@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useAppStore } from '@/lib/store'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { useActivityLog } from '@/hooks/useActivityLog'
 import { offlineDB } from '@/lib/offline'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { 
@@ -15,8 +16,10 @@ import {
   Download,
   Eye,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  History
 } from 'lucide-react'
+import ActivityHistoryModal from './ActivityHistoryModal'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -24,6 +27,7 @@ import { es } from 'date-fns/locale'
 export default function FilesSection() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showLinkModal, setShowLinkModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
   const [linkDescription, setLinkDescription] = useState('')
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
@@ -37,6 +41,7 @@ export default function FilesSection() {
   } = useAppStore()
   
   const { isOnline, addOperationToQueue } = useOfflineSync()
+  const { logActivity } = useActivityLog()
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!currentUser) return
@@ -78,6 +83,21 @@ export default function FilesSection() {
       // Guardar archivo
       addSharedFile(newFile)
       await offlineDB.saveFile(newFile)
+      
+      // 📝 Registrar actividad de subida
+      await logActivity({
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        action_type: 'upload',
+        entity_type: 'file',
+        entity_id: fileId,
+        entity_name: file.name,
+        description: `${currentUser.name} subió el archivo "${file.name}"`,
+        metadata: {
+          file_type: file.type,
+          size: file.size
+        }
+      })
 
       if (isOnline && supabase && isSupabaseConfigured()) {
         try {
@@ -97,7 +117,7 @@ export default function FilesSection() {
     }
     
     setShowUploadModal(false)
-  }, [currentUser, teamMembers, addSharedFile, isOnline, addOperationToQueue])
+  }, [currentUser, teamMembers, addSharedFile, isOnline, addOperationToQueue, logActivity])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -178,6 +198,13 @@ export default function FilesSection() {
         </div>
         
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowHistoryModal(true)}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+          >
+            <History className="w-4 h-4 mr-2" />
+            Historial
+          </button>
           <button
             onClick={() => setShowUploadModal(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all"
@@ -275,9 +302,24 @@ export default function FilesSection() {
                     
                     {currentUser?.role === 'admin' && (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           removeSharedFile(file.id)
                           toast.success('Archivo eliminado')
+                          
+                          // 📝 Registrar actividad de eliminación
+                          await logActivity({
+                            user_id: currentUser.id,
+                            user_name: currentUser.name,
+                            action_type: 'delete',
+                            entity_type: 'file',
+                            entity_id: file.id,
+                            entity_name: file.name,
+                            description: `${currentUser.name} eliminó el archivo "${file.name}"`,
+                            metadata: {
+                              file_type: file.file_type,
+                              size: file.size
+                            }
+                          })
                         }}
                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"
@@ -388,6 +430,14 @@ export default function FilesSection() {
           </div>
         </div>
       )}
+
+      {/* Modal de historial de actividades */}
+      <ActivityHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        entityType="file"
+        entityName="Archivos"
+      />
     </div>
   )
 }

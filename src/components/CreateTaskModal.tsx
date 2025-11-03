@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, Flag, Bell } from 'lucide-react';
 import { Task, useTasks } from '@/hooks/useTasks';
 import { useAuth } from '@/hooks/useAuth';
+import { useActivityLog } from '@/hooks/useActivityLog';
 import NotificationSelector from './NotificationSelector';
 
 interface CreateTaskModalProps {
@@ -19,6 +20,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 }) => {
   const { addTask, updateTask } = useTasks();
   const { currentUser, isAdmin } = useAuth();
+  const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: task?.title || '',
@@ -58,8 +60,45 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
       if (task) {
         await updateTask(task.id, taskData);
+        
+        // 📝 Registrar actividad de actualización
+        await logActivity({
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action_type: 'update',
+          entity_type: 'task',
+          entity_id: task.id,
+          entity_name: formData.title,
+          description: `${currentUser.name} actualizó la tarea "${formData.title}"`,
+          metadata: {
+            priority: formData.priority,
+            status: formData.status,
+            due_date: formData.due_date,
+            previous_status: task.status,
+            previous_priority: task.priority
+          }
+        });
       } else {
+        // Generar ID para la nueva tarea
+        const newTaskId = crypto.randomUUID();
         await addTask(taskData);
+        
+        // 📝 Registrar actividad de creación
+        await logActivity({
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action_type: 'create',
+          entity_type: 'task',
+          entity_id: newTaskId,
+          entity_name: formData.title,
+          description: `${currentUser.name} creó la tarea "${formData.title}"`,
+          metadata: {
+            priority: formData.priority,
+            status: formData.status,
+            due_date: formData.due_date,
+            project_id: projectId
+          }
+        });
         
         // 🔔 Enviar notificaciones solo para tareas nuevas
         if (showNotifications && notificationRecipients.length > 0 && currentUser) {

@@ -1,15 +1,21 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Calendar as CalendarIcon, Clock, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Calendar as CalendarIcon, Clock, Edit2, Trash2, History } from 'lucide-react'
 import { useEvents, Event } from '@/hooks/useEvents'
+import { useAuth } from '@/hooks/useAuth'
+import { useActivityLog } from '@/hooks/useActivityLog'
 import CreateEventModal from './CreateEventModal'
+import ActivityHistoryModal from './ActivityHistoryModal'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export default function CalendarSection() {
   const { events, fetchEvents, deleteEvent } = useEvents()
+  const { currentUser } = useAuth()
+  const { logActivity } = useActivityLog()
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedDate] = useState(new Date())
   const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
 
@@ -80,13 +86,22 @@ export default function CalendarSection() {
             <h1 className="text-2xl font-bold text-gray-900">Calendario</h1>
             <p className="text-sm text-gray-600">Gestiona eventos y recordatorios</p>
           </div>
-          <button
-            onClick={handleAddEvent}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo evento
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+            >
+              <History className="w-4 h-4 mr-2" />
+              Historial
+            </button>
+            <button
+              onClick={handleAddEvent}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo evento
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -177,6 +192,23 @@ export default function CalendarSection() {
                         onClick={async () => {
                           if (confirm('¿Estás seguro de eliminar este evento?')) {
                             await deleteEvent(event.id)
+                            
+                            // 📝 Registrar actividad de eliminación
+                            if (currentUser) {
+                              await logActivity({
+                                user_id: currentUser.id,
+                                user_name: currentUser.name,
+                                action_type: 'delete',
+                                entity_type: 'event',
+                                entity_id: event.id,
+                                entity_name: event.title,
+                                description: `${currentUser.name} eliminó el evento "${event.title}"`,
+                                metadata: {
+                                  event_type: event.event_type,
+                                  start_date: event.start_date
+                                }
+                              })
+                            }
                           }
                         }}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -278,6 +310,14 @@ export default function CalendarSection() {
         }}
         selectedDate={selectedDate}
         event={editingEvent}
+      />
+
+      {/* Modal de historial de actividades */}
+      <ActivityHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        entityType="event"
+        entityName="Eventos"
       />
     </div>
   )
