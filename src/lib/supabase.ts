@@ -25,7 +25,12 @@ export interface TeamMember {
   role: 'admin' | 'member'
   avatar_url?: string
   created_at: string
-  last_active: string
+  // Soportar ambos campos para retrocompatibilidad
+  last_seen?: string // Campo en Supabase
+  last_active?: string // Campo legacy en código local
+  is_active?: boolean
+  password_hash?: string
+  phone_verified?: boolean
   permissions?: string[]
 }
 

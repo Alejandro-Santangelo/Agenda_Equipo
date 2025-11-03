@@ -199,7 +199,7 @@ El Equipo`)
       const passwordHash = await hashPassword(newMemberPassword)
       console.log('✅ Contraseña hasheada correctamente')
 
-      // Crear nuevo miembro con estructura simple + password_hash
+      // Crear nuevo miembro con estructura compatible con Supabase
       const newMemberData = {
         id: `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: newMemberName.trim(),
@@ -208,7 +208,8 @@ El Equipo`)
         role: 'member' as const,
         password_hash: passwordHash,
         created_at: new Date().toISOString(),
-        last_active: new Date().toISOString(),
+        last_seen: new Date().toISOString(), // Cambiado de last_active a last_seen
+        is_active: true,
       }
 
       console.log('👤 Nuevo miembro creado:', { ...newMemberData, password_hash: '[HIDDEN]' })
@@ -414,9 +415,10 @@ El Equipo`)
         'Nombre,Email,Teléfono,Rol,Fecha de Ingreso,Última Actividad',
         ...teamMembers.map(member => {
           const createdDate = new Date(member.created_at);
-          const lastActiveDate = new Date(member.last_active);
+          const lastActiveValue = member.last_seen || member.last_active;
+          const lastActiveDate = lastActiveValue ? new Date(lastActiveValue) : null;
           const createdStr = createdDate.toString() !== 'Invalid Date' ? createdDate.toLocaleDateString() : 'N/A';
-          const lastActiveStr = lastActiveDate.toString() !== 'Invalid Date' ? lastActiveDate.toLocaleString() : 'N/A';
+          const lastActiveStr = lastActiveDate && lastActiveDate.toString() !== 'Invalid Date' ? lastActiveDate.toLocaleString() : 'N/A';
           return `"${member.name}","${member.email}","${member.phone || 'No especificado'}","${member.role}","${createdStr}","${lastActiveStr}"`;
         })
       ].join('\n')
@@ -584,7 +586,8 @@ El Equipo`)
     return colors[index]
   }
 
-  const getLastActiveStatus = (lastActive: string) => {
+  const getLastActiveStatus = (lastActive: string | undefined) => {
+    if (!lastActive) return 'Sin actividad reciente'
     const now = new Date()
     const lastActiveDate = new Date(lastActive)
     const diffInHours = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60))
@@ -693,9 +696,11 @@ El Equipo`)
               <p className="text-sm text-gray-600">Activas hoy</p>
               <p className="text-xl font-semibold text-gray-900">
                 {teamMembers.filter(m => {
-                  const lastActive = new Date(m.last_active)
-                  const today = new Date()
-                  return lastActive.toDateString() === today.toDateString()
+                  const lastActiveValue = m.last_seen || m.last_active;
+                  if (!lastActiveValue) return false;
+                  const lastActive = new Date(lastActiveValue);
+                  const today = new Date();
+                  return lastActive.toString() !== 'Invalid Date' && lastActive.toDateString() === today.toDateString();
                 }).length}
               </p>
             </div>
@@ -752,7 +757,7 @@ El Equipo`)
                   
                   <div className="mt-2">
                     <span className="text-xs text-gray-500">
-                      {getLastActiveStatus(member.last_active)}
+                      {getLastActiveStatus(member.last_seen || member.last_active)}
                     </span>
                   </div>
                 </div>
