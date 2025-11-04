@@ -70,6 +70,7 @@ export const useTasks = create<TaskStore>()(
               const { data: serverTasks, error } = await supabase
                 .from('tasks')
                 .select('*')
+                .is('archived_at', null)  // Solo tareas no archivadas
                 .order('created_at', { ascending: false })
 
               if (!error && serverTasks) {

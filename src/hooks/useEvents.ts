@@ -53,6 +53,7 @@ export const useEvents = create<EventStore>()(
               const { data: serverEvents, error } = await supabase
                 .from('events')
                 .select('*')
+                .is('archived_at', null)  // Solo eventos no archivados
                 .order('start_date', { ascending: true })
 
               if (!error && serverEvents) {

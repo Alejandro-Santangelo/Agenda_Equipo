@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { useAuth } from '@/hooks/useAuth'
+import { useAutoArchive } from '@/hooks/useAutoArchive'
 import { syncAllDataFromSupabase, syncEssentialData } from '@/lib/sync'
 import { Files, MessageCircle, Users, UserCircle, Menu, X, Wifi, WifiOff, LogOut, Crown, Shield, BarChart3, Calendar, CheckSquare } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
@@ -24,6 +25,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { isOnline, syncInProgress } = useOfflineSync()
   const { currentUser, logout } = useAuth()
   const [initialSyncDone, setInitialSyncDone] = useState(false)
+  
+  // Hook para archivar automáticamente eventos y tareas pasados
+  useAutoArchive()
 
   // Sincronización inicial al cargar el layout
   useEffect(() => {
