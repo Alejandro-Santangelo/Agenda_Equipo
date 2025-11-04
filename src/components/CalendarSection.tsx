@@ -48,16 +48,20 @@ export default function CalendarSection() {
       case 'week':
         const weekFromNow = new Date()
         weekFromNow.setDate(weekFromNow.getDate() + 7)
+        weekFromNow.setHours(23, 59, 59, 999)
         return validEvents.filter(event => {
           const eventDate = new Date(event.start_date)
           return eventDate >= today && eventDate <= weekFromNow
         })
       
       case 'upcoming':
+        // Eventos después de los 7 días (después de "Esta semana")
+        const afterWeek = new Date()
+        afterWeek.setDate(afterWeek.getDate() + 7)
+        afterWeek.setHours(23, 59, 59, 999)
         return validEvents
-          .filter(event => new Date(event.start_date) >= new Date())
+          .filter(event => new Date(event.start_date) > afterWeek)
           .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
-          .slice(0, 10)
       
       case 'all':
       default:
@@ -71,6 +75,8 @@ export default function CalendarSection() {
 
   const getEventStats = () => {
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
     const todayEvents = events.filter(event => {
       if (!event.start_date) return false
       const eventDate = new Date(event.start_date)
@@ -78,20 +84,30 @@ export default function CalendarSection() {
       return eventDate.toDateString() === today.toDateString()
     })
     
+    const weekFromNow = new Date()
+    weekFromNow.setDate(weekFromNow.getDate() + 7)
+    weekFromNow.setHours(23, 59, 59, 999)
+    
     const thisWeekEvents = events.filter(event => {
       if (!event.start_date) return false
       const eventDate = new Date(event.start_date)
       if (eventDate.toString() === 'Invalid Date') return false
-      const weekFromNow = new Date()
-      weekFromNow.setDate(weekFromNow.getDate() + 7)
       return eventDate >= today && eventDate <= weekFromNow
+    })
+    
+    // Eventos después de esta semana (después de 7 días)
+    const upcomingEventsAfterWeek = events.filter(event => {
+      if (!event.start_date) return false
+      const eventDate = new Date(event.start_date)
+      if (eventDate.toString() === 'Invalid Date') return false
+      return eventDate > weekFromNow
     })
 
     return {
       total: events.length,
       today: todayEvents.length,
       thisWeek: thisWeekEvents.length,
-      upcoming: upcomingEvents.length
+      upcoming: upcomingEventsAfterWeek.length
     }
   }
 
