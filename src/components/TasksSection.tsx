@@ -72,22 +72,46 @@ export default function TasksSection() {
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded-lg p-3">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`bg-gray-50 rounded-lg p-3 text-left transition-all ${
+              statusFilter === 'all' ? 'ring-2 ring-gray-400 shadow-md' : 'hover:shadow-md hover:bg-gray-100'
+            } ${stats.total === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.total === 0}
+          >
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-sm text-gray-600">Total</div>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-3">
+          </button>
+          <button
+            onClick={() => setStatusFilter('pending')}
+            className={`bg-yellow-50 rounded-lg p-3 text-left transition-all ${
+              statusFilter === 'pending' ? 'ring-2 ring-yellow-400 shadow-md' : 'hover:shadow-md hover:bg-yellow-100'
+            } ${stats.pending === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.pending === 0}
+          >
             <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
             <div className="text-sm text-gray-600">Pendientes</div>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-3">
+          </button>
+          <button
+            onClick={() => setStatusFilter('in_progress')}
+            className={`bg-blue-50 rounded-lg p-3 text-left transition-all ${
+              statusFilter === 'in_progress' ? 'ring-2 ring-blue-400 shadow-md' : 'hover:shadow-md hover:bg-blue-100'
+            } ${stats.inProgress === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.inProgress === 0}
+          >
             <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
             <div className="text-sm text-gray-600">En progreso</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3">
+          </button>
+          <button
+            onClick={() => setStatusFilter('completed')}
+            className={`bg-green-50 rounded-lg p-3 text-left transition-all ${
+              statusFilter === 'completed' ? 'ring-2 ring-green-400 shadow-md' : 'hover:shadow-md hover:bg-green-100'
+            } ${stats.completed === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.completed === 0}
+          >
             <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
             <div className="text-sm text-gray-600">Completadas</div>
-          </div>
+          </button>
         </div>
       </div>
 

@@ -18,6 +18,7 @@ export default function CalendarSection() {
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedDate] = useState(new Date())
   const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
+  const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week' | 'upcoming'>('upcoming')
 
   useEffect(() => {
     fetchEvents()
@@ -27,12 +28,46 @@ export default function CalendarSection() {
     setShowCreateModal(true)
   }
 
-  // Filtrar eventos por fecha próxima
-  const upcomingEvents = events
-    .filter(event => event.start_date && new Date(event.start_date).toString() !== 'Invalid Date')
-    .filter(event => new Date(event.start_date) >= new Date())
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
-    .slice(0, 10)
+  // Filtrar eventos según el filtro de tiempo seleccionado
+  const getFilteredEvents = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const validEvents = events.filter(event => 
+      event.start_date && new Date(event.start_date).toString() !== 'Invalid Date'
+    )
+
+    switch (timeFilter) {
+      case 'today':
+        return validEvents.filter(event => {
+          const eventDate = new Date(event.start_date)
+          eventDate.setHours(0, 0, 0, 0)
+          return eventDate.getTime() === today.getTime()
+        })
+      
+      case 'week':
+        const weekFromNow = new Date()
+        weekFromNow.setDate(weekFromNow.getDate() + 7)
+        return validEvents.filter(event => {
+          const eventDate = new Date(event.start_date)
+          return eventDate >= today && eventDate <= weekFromNow
+        })
+      
+      case 'upcoming':
+        return validEvents
+          .filter(event => new Date(event.start_date) >= new Date())
+          .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+          .slice(0, 10)
+      
+      case 'all':
+      default:
+        return validEvents.sort((a, b) => 
+          new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+        )
+    }
+  }
+
+  const upcomingEvents = getFilteredEvents()
 
   const getEventStats = () => {
     const today = new Date()
@@ -113,29 +148,58 @@ export default function CalendarSection() {
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded-lg p-3">
+          <button
+            onClick={() => setTimeFilter('all')}
+            className={`bg-gray-50 rounded-lg p-3 text-left transition-all ${
+              timeFilter === 'all' ? 'ring-2 ring-gray-400 shadow-md' : 'hover:shadow-md hover:bg-gray-100'
+            } ${stats.total === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.total === 0}
+          >
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-sm text-gray-600">Total eventos</div>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-3">
+          </button>
+          <button
+            onClick={() => setTimeFilter('today')}
+            className={`bg-blue-50 rounded-lg p-3 text-left transition-all ${
+              timeFilter === 'today' ? 'ring-2 ring-blue-400 shadow-md' : 'hover:shadow-md hover:bg-blue-100'
+            } ${stats.today === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.today === 0}
+          >
             <div className="text-2xl font-bold text-blue-600">{stats.today}</div>
             <div className="text-sm text-gray-600">Hoy</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3">
+          </button>
+          <button
+            onClick={() => setTimeFilter('week')}
+            className={`bg-green-50 rounded-lg p-3 text-left transition-all ${
+              timeFilter === 'week' ? 'ring-2 ring-green-400 shadow-md' : 'hover:shadow-md hover:bg-green-100'
+            } ${stats.thisWeek === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.thisWeek === 0}
+          >
             <div className="text-2xl font-bold text-green-600">{stats.thisWeek}</div>
             <div className="text-sm text-gray-600">Esta semana</div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-3">
+          </button>
+          <button
+            onClick={() => setTimeFilter('upcoming')}
+            className={`bg-purple-50 rounded-lg p-3 text-left transition-all ${
+              timeFilter === 'upcoming' ? 'ring-2 ring-purple-400 shadow-md' : 'hover:shadow-md hover:bg-purple-100'
+            } ${stats.upcoming === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+            disabled={stats.upcoming === 0}
+          >
             <div className="text-2xl font-bold text-purple-600">{stats.upcoming}</div>
             <div className="text-sm text-gray-600">Próximos</div>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Próximos eventos</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            {timeFilter === 'all' ? 'Todos los eventos' : 
+             timeFilter === 'today' ? 'Eventos de hoy' : 
+             timeFilter === 'week' ? 'Eventos de esta semana' : 
+             'Próximos eventos'}
+          </h2>
           
           {upcomingEvents.length === 0 ? (
             <div className="text-center py-12">

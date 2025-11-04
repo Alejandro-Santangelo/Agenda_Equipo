@@ -96,6 +96,144 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
     return labels[type] || type;
   };
 
+  const formatMetadata = (metadata: Record<string, unknown>, entityType: string) => {
+    if (!metadata || Object.keys(metadata).length === 0) return null;
+
+    const formatters: Record<string, (meta: Record<string, unknown>) => React.ReactNode> = {
+      event: (meta) => (
+        <>
+          {typeof meta.start_date === 'string' && meta.start_date && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Fecha inicio:</span>
+              <span className="text-gray-600">{format(new Date(meta.start_date), "PPP 'a las' p", { locale: es })}</span>
+            </div>
+          )}
+          {typeof meta.end_date === 'string' && meta.end_date && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Fecha fin:</span>
+              <span className="text-gray-600">{format(new Date(meta.end_date), "PPP 'a las' p", { locale: es })}</span>
+            </div>
+          )}
+          {typeof meta.event_type === 'string' && meta.event_type && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Tipo:</span>
+              <span className="text-gray-600">
+                {meta.event_type === 'meeting' ? 'Reunión' : 
+                 meta.event_type === 'event' ? 'Evento' : 
+                 meta.event_type === 'deadline' ? 'Fecha límite' : meta.event_type}
+              </span>
+            </div>
+          )}
+          {typeof meta.location === 'string' && meta.location && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Ubicación:</span>
+              <span className="text-gray-600">{meta.location}</span>
+            </div>
+          )}
+          {typeof meta.description === 'string' && meta.description && (
+            <div className="flex items-start text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Descripción:</span>
+              <span className="text-gray-600">{meta.description}</span>
+            </div>
+          )}
+        </>
+      ),
+      task: (meta) => (
+        <>
+          {typeof meta.status === 'string' && meta.status && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Estado:</span>
+              <span className="text-gray-600">
+                {meta.status === 'pending' ? 'Pendiente' : 
+                 meta.status === 'in-progress' ? 'En progreso' : 
+                 meta.status === 'completed' ? 'Completada' : meta.status}
+              </span>
+            </div>
+          )}
+          {typeof meta.priority === 'string' && meta.priority && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Prioridad:</span>
+              <span className="text-gray-600">
+                {meta.priority === 'high' ? 'Alta' : 
+                 meta.priority === 'medium' ? 'Media' : 
+                 meta.priority === 'low' ? 'Baja' : meta.priority}
+              </span>
+            </div>
+          )}
+          {typeof meta.due_date === 'string' && meta.due_date && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Fecha límite:</span>
+              <span className="text-gray-600">{format(new Date(meta.due_date), "PPP", { locale: es })}</span>
+            </div>
+          )}
+          {typeof meta.assigned_to === 'string' && meta.assigned_to && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Asignado a:</span>
+              <span className="text-gray-600">{meta.assigned_to}</span>
+            </div>
+          )}
+        </>
+      ),
+      file: (meta) => (
+        <>
+          {typeof meta.file_type === 'string' && meta.file_type && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Tipo:</span>
+              <span className="text-gray-600">{meta.file_type}</span>
+            </div>
+          )}
+          {typeof meta.size === 'number' && meta.size > 0 && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Tamaño:</span>
+              <span className="text-gray-600">{(meta.size / 1024).toFixed(2)} KB</span>
+            </div>
+          )}
+          {typeof meta.shared_with === 'string' && meta.shared_with && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Compartido con:</span>
+              <span className="text-gray-600">{meta.shared_with}</span>
+            </div>
+          )}
+        </>
+      ),
+      project: (meta) => (
+        <>
+          {typeof meta.status === 'string' && meta.status && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Estado:</span>
+              <span className="text-gray-600">{meta.status}</span>
+            </div>
+          )}
+          {typeof meta.progress === 'number' && meta.progress !== undefined && (
+            <div className="flex items-center text-sm mb-1">
+              <span className="font-medium text-gray-700 w-32">Progreso:</span>
+              <span className="text-gray-600">{meta.progress}%</span>
+            </div>
+          )}
+        </>
+      ),
+    };
+
+    const formatter = formatters[entityType];
+    if (formatter) {
+      return <div className="space-y-1">{formatter(metadata)}</div>;
+    }
+
+    // Fallback: mostrar campos genéricos
+    return (
+      <div className="space-y-1">
+        {Object.entries(metadata).map(([key, value]) => (
+          <div key={key} className="flex items-center text-sm">
+            <span className="font-medium text-gray-700 w-32 capitalize">
+              {key.replace(/_/g, ' ')}:
+            </span>
+            <span className="text-gray-600">{String(value)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -195,9 +333,9 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
                           <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
                             Ver detalles
                           </summary>
-                          <pre className="mt-2 text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto">
-                            {JSON.stringify(activity.metadata, null, 2)}
-                          </pre>
+                          <div className="mt-2 text-xs bg-white p-3 rounded border border-gray-200">
+                            {formatMetadata(activity.metadata, activity.entity_type)}
+                          </div>
                         </details>
                       )}
                     </div>
