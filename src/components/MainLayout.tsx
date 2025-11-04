@@ -31,18 +31,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   // Limpiar cache al cargar si hay cambios importantes en la estructura
   useEffect(() => {
-    const CACHE_VERSION = '2025-11-04-v5' // Cambiar esta versión cuando necesites forzar limpieza
+    const CACHE_VERSION = '2025-11-04-v6' // Cambiar esta versión cuando necesites forzar limpieza
     const currentVersion = localStorage.getItem('agenda-cache-version')
     
     if (currentVersion !== CACHE_VERSION) {
-      console.log('🧹 Detectado cambio de versión, limpiando cache completo...')
-      // Limpiar TODOS los storages de Zustand
+      console.log('🧹 Detectado cambio de versión, limpiando TODO el cache...')
+      
+      // 1. Limpiar TODOS los storages de Zustand
       localStorage.removeItem('agenda-equipo-storage')  // Store principal
       localStorage.removeItem('dev-auth-storage')        // Auth storage
+      
+      // 2. Limpiar IndexedDB (base de datos offline)
+      const deleteDB = indexedDB.deleteDatabase('agenda-equipo-offline')
+      deleteDB.onsuccess = () => console.log('✅ IndexedDB eliminada')
+      deleteDB.onerror = () => console.error('❌ Error al eliminar IndexedDB')
+      
+      // 3. Marcar nueva versión y recargar
       localStorage.setItem('agenda-cache-version', CACHE_VERSION)
-      console.log('✅ Cache limpiado completamente, recargando...')
+      console.log('✅ Cache completo limpiado (localStorage + IndexedDB), recargando...')
+      
       // Forzar recarga para reiniciar la app limpia
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 500) // Esperar a que se complete la eliminación de DB
     }
   }, [])
 
