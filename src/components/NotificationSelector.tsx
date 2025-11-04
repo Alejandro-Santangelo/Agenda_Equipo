@@ -25,7 +25,7 @@ export default function NotificationSelector({
   notificationType,
   className = ''
 }: NotificationSelectorProps) {
-  const { currentUser, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,14 +61,9 @@ export default function NotificationSelector({
       }
     } catch (error) {
       console.error('Error fetching team members:', error)
-      // Datos de ejemplo para desarrollo
-      const exampleMembers: TeamMember[] = [
-        { id: '1', name: 'Paula', email: 'paula@equipo.com', phone: '+54 9 11 1111-1111', role: 'admin' },
-        { id: '2', name: 'Gabi', email: 'gabi@equipo.com', phone: '+54 9 11 3333-3333', role: 'member' },
-        { id: '3', name: 'Caro', email: 'caro@equipo.com', phone: '+54 9 11 2222-2222', role: 'member' }
-      ]
-      setTeamMembers(exampleMembers)
-      setSelectedRecipients(exampleMembers.map(member => member.id))
+      // Mostrar error y dejar lista vacía
+      setTeamMembers([])
+      setSelectedRecipients([])
     } finally {
       setLoading(false)
     }

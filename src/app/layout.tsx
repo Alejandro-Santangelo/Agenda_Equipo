@@ -85,7 +85,7 @@ export default function RootLayout({
                   console.log('=== DEBUG STORE ===');
                   console.log('LocalStorage data:', stored ? JSON.parse(stored) : 'No data');
                   console.log('Para limpiar localStorage, ejecuta: clearStorageData()');
-                  console.log('Para agregar Caro, ejecuta: addCaroToStorage()');
+                  console.log('Para forzar recarga desde Supabase, ejecuta: forceReloadFromSupabase()');
                 };
                 
                 window.clearStorageData = function() {
@@ -93,32 +93,10 @@ export default function RootLayout({
                   console.log('✅ LocalStorage limpiado. Recarga la página.');
                 };
                 
-                window.addCaroToStorage = function() {
-                  const stored = localStorage.getItem('agenda-equipo-storage');
-                  if (stored) {
-                    const data = JSON.parse(stored);
-                    const caroExists = data.state?.teamMembers?.find(m => m.name === 'Caro');
-                    
-                    if (!caroExists && data.state?.teamMembers) {
-                      const caro = {
-                        id: '3',
-                        name: 'Caro',
-                        email: 'caro@equipo.com',
-                        role: 'member',
-                        created_at: new Date().toISOString(),
-                        last_active: new Date().toISOString(),
-                        permissions: ['files.upload','files.share_links','files.download','files.delete_own','chat.send','chat.edit_own','chat.delete_own','team.view_members']
-                      };
-                      
-                      data.state.teamMembers.push(caro);
-                      localStorage.setItem('agenda-equipo-storage', JSON.stringify(data));
-                      console.log('✅ Caro agregada. Recarga la página.');
-                    } else {
-                      console.log('ℹ️ Caro ya existe o no hay estructura de datos');
-                    }
-                  } else {
-                    console.log('❌ No hay datos en localStorage');
-                  }
+                window.forceReloadFromSupabase = function() {
+                  localStorage.removeItem('agenda-equipo-storage');
+                  console.log('✅ Datos locales eliminados. Los datos se cargarán desde Supabase al recargar.');
+                  console.log('💡 Recarga la página para sincronizar con Supabase.');
                 };
                 
                 console.log('🔧 Funciones de debug disponibles: debugStore(), clearStorageData(), addCaroToStorage()');

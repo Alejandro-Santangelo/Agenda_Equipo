@@ -36,19 +36,18 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /**
- * Genera hashes para las credenciales por defecto
- * Función auxiliar para migración inicial
+ * Genera hashes para credenciales personalizadas
+ * Función auxiliar para migración de usuarios
  */
-export async function generateDefaultCredentialsHashes() {
-  const defaultCredentials = [
-    { email: 'paula@equipo.com', password: '1111', name: 'Paula', role: 'admin' },
-    { email: 'gabi@equipo.com', password: '3333', name: 'Gabi', role: 'member' },
-    { email: 'caro@equipo.com', password: '2222', name: 'Caro', role: 'member' }
-  ]
-
+export async function generateCredentialsHashes(credentials: Array<{
+  email: string
+  password: string
+  name: string
+  role: string
+}>) {
   const hashedCredentials = []
   
-  for (const cred of defaultCredentials) {
+  for (const cred of credentials) {
     const hashedPassword = await hashPassword(cred.password)
     hashedCredentials.push({
       ...cred,
