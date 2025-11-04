@@ -31,14 +31,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   // Limpiar cache al cargar si hay cambios importantes en la estructura
   useEffect(() => {
-    const CACHE_VERSION = '2025-11-04-v3' // Cambiar esta versión cuando necesites forzar limpieza
+    const CACHE_VERSION = '2025-11-04-v4' // Cambiar esta versión cuando necesites forzar limpieza
     const currentVersion = localStorage.getItem('agenda-cache-version')
     
     if (currentVersion !== CACHE_VERSION) {
-      console.log('🧹 Detectado cambio de versión, limpiando cache...')
-      localStorage.removeItem('agenda-equipo-storage')
+      console.log('🧹 Detectado cambio de versión, limpiando cache completo...')
+      // Limpiar TODOS los storages de Zustand
+      localStorage.removeItem('agenda-equipo-storage')  // Store principal
+      localStorage.removeItem('dev-auth-storage')        // Auth storage
       localStorage.setItem('agenda-cache-version', CACHE_VERSION)
-      console.log('✅ Cache limpiado, recargando datos desde Supabase...')
+      console.log('✅ Cache limpiado completamente, recargando...')
+      // Forzar recarga para reiniciar la app limpia
+      window.location.reload()
     }
   }, [])
 
