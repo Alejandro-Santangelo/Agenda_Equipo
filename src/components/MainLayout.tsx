@@ -31,7 +31,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   // Limpiar cache al cargar si hay cambios importantes en la estructura
   useEffect(() => {
-    const CACHE_VERSION = '2025-11-04-v2' // Cambiar esta versión cuando necesites forzar limpieza
+    const CACHE_VERSION = '2025-11-04-v3' // Cambiar esta versión cuando necesites forzar limpieza
     const currentVersion = localStorage.getItem('agenda-cache-version')
     
     if (currentVersion !== CACHE_VERSION) {
