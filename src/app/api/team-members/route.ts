@@ -1,42 +1,35 @@
 import { NextResponse } from 'next/server'
-
-// Datos de ejemplo del equipo
-const TEAM_MEMBERS = [
-  {
-    id: '1',
-    name: 'Paula',
-    email: 'paula@equipo.com',
-    phone: '+54 9 11 1111-1111',
-    role: 'admin'
-  },
-  {
-    id: '2', 
-    name: 'Gabi',
-    email: 'gabi@equipo.com',
-    phone: '+54 9 11 3333-3333',
-    role: 'member'
-  },
-  {
-    id: '3',
-    name: 'Caro', 
-    email: 'caro@equipo.com',
-    phone: '+54 9 11 2222-2222',
-    role: 'member'
-  }
-]
+import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // En una implementación real, esto vendría de Supabase
-    // const { data, error } = await supabase
-    //   .from('team_members')
-    //   .select('id, name, email, phone, role')
-    //   .order('name')
+    // Verificar que Supabase esté configurado
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Supabase no está configurado',
+        members: []
+      }, { status: 503 })
+    }
+
+    // Obtener miembros del equipo desde Supabase
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('id, name, email, phone, role')
+      .order('name')
     
-    // Por ahora, devolvemos datos de ejemplo
+    if (error) {
+      console.error('Error fetching team members from Supabase:', error)
+      return NextResponse.json({
+        success: false,
+        error: 'Error al obtener miembros del equipo',
+        members: []
+      }, { status: 500 })
+    }
+    
     return NextResponse.json({
       success: true,
-      members: TEAM_MEMBERS
+      members: data || []
     })
   } catch (error) {
     console.error('Error fetching team members:', error)
@@ -44,7 +37,7 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       error: 'Error al obtener miembros del equipo',
-      members: TEAM_MEMBERS // Fallback a datos de ejemplo
+      members: []
     }, { status: 500 })
   }
 }
