@@ -109,7 +109,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, compact = false }) => {
               
               <div className="flex items-center">
                 <span>Estado: {task.status === 'completed' ? 'Completado' : 
-                            task.status === 'in_progress' ? 'En progreso' : 'Pendiente'}</span>
+                            task.status === 'in_progress' ? 'En progreso' : 'Asignada'}</span>
               </div>
             </div>
           </div>

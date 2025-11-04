@@ -90,7 +90,7 @@ export default function TasksSection() {
             disabled={stats.pending === 0}
           >
             <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <div className="text-sm text-gray-600">Pendientes</div>
+            <div className="text-sm text-gray-600">Asignadas</div>
           </button>
           <button
             onClick={() => setStatusFilter('in_progress')}
@@ -130,11 +130,11 @@ export default function TasksSection() {
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'in_progress' | 'completed')}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todos los estados</option>
-            <option value="pending">Pendiente</option>
+            <option value="pending">Asignada</option>
             <option value="in_progress">En progreso</option>
             <option value="completed">Completado</option>
           </select>

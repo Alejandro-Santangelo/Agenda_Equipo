@@ -144,7 +144,7 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
             <div className="flex items-center text-sm mb-1">
               <span className="font-medium text-gray-700 w-32">Estado:</span>
               <span className="text-gray-600">
-                {meta.status === 'pending' ? 'Pendiente' : 
+                {meta.status === 'pending' ? 'Asignada' : 
                  meta.status === 'in-progress' ? 'En progreso' : 
                  meta.status === 'completed' ? 'Completada' : meta.status}
               </span>

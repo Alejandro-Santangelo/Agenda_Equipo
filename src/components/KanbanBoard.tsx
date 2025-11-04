@@ -10,7 +10,7 @@ interface KanbanBoardProps {
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onAddTask }) => {
   const columns = [
-    { id: 'pending', title: 'Pendiente', color: 'bg-yellow-100 border-yellow-200' },
+    { id: 'pending', title: 'Asignada', color: 'bg-yellow-100 border-yellow-200' },
     { id: 'in_progress', title: 'En progreso', color: 'bg-blue-100 border-blue-200' },
     { id: 'completed', title: 'Completado', color: 'bg-green-100 border-green-200' }
   ];
