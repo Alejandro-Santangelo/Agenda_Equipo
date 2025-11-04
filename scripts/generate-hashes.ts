@@ -5,13 +5,19 @@
  * Ejecutar con: npx ts-node scripts/generate-hashes.ts
  */
 
-import { generateDefaultCredentialsHashes } from '../src/lib/password-utils.js'
+import { generateCredentialsHashes } from '../src/lib/password-utils.js'
 
 async function main() {
   console.log('🔐 Generando hashes de contraseñas para migración...\n')
   
+  // Definir usuarios para los que se generarán hashes
+  const users = [
+    { email: 'admin@example.com', password: 'admin123', name: 'Admin', role: 'admin' },
+    { email: 'user@example.com', password: 'user123', name: 'User', role: 'member' }
+  ]
+  
   try {
-    const credentials = await generateDefaultCredentialsHashes()
+    const credentials = await generateCredentialsHashes(users)
     
     console.log('\n📋 SQL para insertar en Supabase:')
     console.log('=====================================\n')
