@@ -29,6 +29,19 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Hook para archivar automáticamente eventos y tareas pasados
   useAutoArchive()
 
+  // Limpiar cache al cargar si hay cambios importantes en la estructura
+  useEffect(() => {
+    const CACHE_VERSION = '2025-11-04-v2' // Cambiar esta versión cuando necesites forzar limpieza
+    const currentVersion = localStorage.getItem('agenda-cache-version')
+    
+    if (currentVersion !== CACHE_VERSION) {
+      console.log('🧹 Detectado cambio de versión, limpiando cache...')
+      localStorage.removeItem('agenda-equipo-storage')
+      localStorage.setItem('agenda-cache-version', CACHE_VERSION)
+      console.log('✅ Cache limpiado, recargando datos desde Supabase...')
+    }
+  }, [])
+
   // Sincronización inicial al cargar el layout
   useEffect(() => {
     if (currentUser && !initialSyncDone) {
