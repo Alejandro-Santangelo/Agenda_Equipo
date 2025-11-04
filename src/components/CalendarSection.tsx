@@ -150,40 +150,36 @@ export default function CalendarSection() {
         <div className="grid grid-cols-4 gap-4">
           <button
             onClick={() => setTimeFilter('all')}
-            className={`bg-gray-50 rounded-lg p-3 text-left transition-all ${
+            className={`bg-gray-50 rounded-lg p-3 text-left transition-all cursor-pointer ${
               timeFilter === 'all' ? 'ring-2 ring-gray-400 shadow-md' : 'hover:shadow-md hover:bg-gray-100'
-            } ${stats.total === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
-            disabled={stats.total === 0}
+            }`}
           >
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-sm text-gray-600">Total eventos</div>
           </button>
           <button
             onClick={() => setTimeFilter('today')}
-            className={`bg-blue-50 rounded-lg p-3 text-left transition-all ${
+            className={`bg-blue-50 rounded-lg p-3 text-left transition-all cursor-pointer ${
               timeFilter === 'today' ? 'ring-2 ring-blue-400 shadow-md' : 'hover:shadow-md hover:bg-blue-100'
-            } ${stats.today === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
-            disabled={stats.today === 0}
+            }`}
           >
             <div className="text-2xl font-bold text-blue-600">{stats.today}</div>
             <div className="text-sm text-gray-600">Hoy</div>
           </button>
           <button
             onClick={() => setTimeFilter('week')}
-            className={`bg-green-50 rounded-lg p-3 text-left transition-all ${
+            className={`bg-green-50 rounded-lg p-3 text-left transition-all cursor-pointer ${
               timeFilter === 'week' ? 'ring-2 ring-green-400 shadow-md' : 'hover:shadow-md hover:bg-green-100'
-            } ${stats.thisWeek === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
-            disabled={stats.thisWeek === 0}
+            }`}
           >
             <div className="text-2xl font-bold text-green-600">{stats.thisWeek}</div>
             <div className="text-sm text-gray-600">Esta semana</div>
           </button>
           <button
             onClick={() => setTimeFilter('upcoming')}
-            className={`bg-purple-50 rounded-lg p-3 text-left transition-all ${
+            className={`bg-purple-50 rounded-lg p-3 text-left transition-all cursor-pointer ${
               timeFilter === 'upcoming' ? 'ring-2 ring-purple-400 shadow-md' : 'hover:shadow-md hover:bg-purple-100'
-            } ${stats.upcoming === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
-            disabled={stats.upcoming === 0}
+            }`}
           >
             <div className="text-2xl font-bold text-purple-600">{stats.upcoming}</div>
             <div className="text-sm text-gray-600">Próximos</div>
@@ -204,14 +200,22 @@ export default function CalendarSection() {
           {upcomingEvents.length === 0 ? (
             <div className="text-center py-12">
               <CalendarIcon className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay eventos próximos</h3>
-              <p className="text-gray-500 mb-4">Comienza agregando tu primer evento</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {timeFilter === 'today' ? 'No hay eventos para hoy' : 
+                 timeFilter === 'week' ? 'No hay eventos esta semana' : 
+                 timeFilter === 'upcoming' ? 'No hay eventos próximos' :
+                 'No hay eventos'}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {timeFilter === 'today' ? '¡Tu agenda para hoy está libre!' : 
+                 'Comienza agregando tu primer evento'}
+              </p>
               <button
                 onClick={handleAddEvent}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="w-4 h-4 mr-2 inline" />
-                Crear primer evento
+                {timeFilter === 'today' ? 'Crear evento para hoy' : 'Crear evento'}
               </button>
             </div>
           ) : (
