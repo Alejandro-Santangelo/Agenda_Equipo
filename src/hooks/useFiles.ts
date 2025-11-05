@@ -59,9 +59,12 @@ export const useFiles = create<FileStore>()(
 
               if (!error && serverFiles) {
                 set({ files: serverFiles })
-                console.log('✅ Archivos sincronizados desde servidor')
+                console.log('✅ Archivos sincronizados desde servidor:', serverFiles.length)
+              } else if (error) {
+                console.error('Error al cargar archivos desde Supabase:', error)
               }
-            } catch {
+            } catch (err) {
+              console.error('Error en fetchFiles:', err)
               console.log('📱 Archivos: usando datos locales')
             }
           }
