@@ -188,6 +188,28 @@ export default function FilesSection() {
     return teamMembers.find(m => m.id === userId)?.name || 'Usuario'
   }
 
+  const getFileStats = () => {
+    const uploads = sharedFiles.filter(f => f.type === 'upload')
+    const links = sharedFiles.filter(f => f.type === 'link')
+    const totalSize = uploads.reduce((acc, file) => acc + (file.size || 0), 0)
+    
+    return {
+      total: sharedFiles.length,
+      uploads: uploads.length,
+      links: links.length,
+      totalSize
+    }
+  }
+
+  const stats = getFileStats()
+
+  const [typeFilter, setTypeFilter] = useState<'all' | 'upload' | 'link'>('all')
+
+  const filteredFiles = sharedFiles.filter(file => {
+    if (typeFilter === 'all') return true
+    return file.type === typeFilter
+  })
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -222,16 +244,67 @@ export default function FilesSection() {
         </div>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <button
+          onClick={() => setTypeFilter('all')}
+          className={`bg-gray-50 rounded-lg p-3 text-left transition-all ${
+            typeFilter === 'all' ? 'ring-2 ring-gray-400 shadow-md' : 'hover:shadow-md hover:bg-gray-100'
+          } ${stats.total === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+          disabled={stats.total === 0}
+        >
+          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+          <div className="text-sm text-gray-600">Total</div>
+        </button>
+        
+        <button
+          onClick={() => setTypeFilter('upload')}
+          className={`bg-blue-50 rounded-lg p-3 text-left transition-all ${
+            typeFilter === 'upload' ? 'ring-2 ring-blue-400 shadow-md' : 'hover:shadow-md hover:bg-blue-100'
+          } ${stats.uploads === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+          disabled={stats.uploads === 0}
+        >
+          <div className="text-2xl font-bold text-blue-600">{stats.uploads}</div>
+          <div className="text-sm text-gray-600">Archivos</div>
+        </button>
+        
+        <button
+          onClick={() => setTypeFilter('link')}
+          className={`bg-purple-50 rounded-lg p-3 text-left transition-all ${
+            typeFilter === 'link' ? 'ring-2 ring-purple-400 shadow-md' : 'hover:shadow-md hover:bg-purple-100'
+          } ${stats.links === 0 ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+          disabled={stats.links === 0}
+        >
+          <div className="text-2xl font-bold text-purple-600">{stats.links}</div>
+          <div className="text-sm text-gray-600">Links</div>
+        </button>
+        
+        <div className="bg-green-50 rounded-lg p-3 text-left">
+          <div className="text-2xl font-bold text-green-600">{formatFileSize(stats.totalSize)}</div>
+          <div className="text-sm text-gray-600">Tamaño Total</div>
+        </div>
+      </div>
+
       {/* Files List */}
       <div className="grid gap-4">
-        {sharedFiles.length === 0 ? (
+        {filteredFiles.length === 0 ? (
           <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-xl border border-pink-200/50">
             <FileIcon size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay archivos compartidos</h3>
-            <p className="text-gray-600 mb-4">Sube tu primer archivo o comparte un link para comenzar</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {sharedFiles.length === 0 
+                ? 'No hay archivos compartidos' 
+                : `No hay ${typeFilter === 'upload' ? 'archivos subidos' : 'links compartidos'}`
+              }
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {sharedFiles.length === 0 
+                ? 'Sube tu primer archivo o comparte un link para comenzar'
+                : 'Prueba con otro filtro'
+              }
+            </p>
           </div>
         ) : (
-          sharedFiles.map((file) => {
+          filteredFiles.map((file) => {
             const Icon = getFileIcon(file.file_type)
             const progress = uploadProgress[file.id]
             
