@@ -58,6 +58,15 @@ export const useFiles = create<FileStore>()(
           console.log('🔍 fetchFiles iniciado')
           set({ loading: true, error: null })
           
+          // Limpiar archivos temporales con IDs no-UUID
+          const { files: currentFiles } = get()
+          const tempFiles = currentFiles.filter(f => f.id.startsWith('file-'))
+          if (tempFiles.length > 0) {
+            console.log('🧹 Limpiando archivos temporales:', tempFiles.length)
+            const cleanFiles = currentFiles.filter(f => !f.id.startsWith('file-'))
+            set({ files: cleanFiles })
+          }
+          
           // Si hay Supabase configurado, intentar sincronizar
           if (supabase && isSupabaseConfigured()) {
             console.log('🔍 Supabase configurado, consultando shared_files...')
@@ -120,14 +129,18 @@ export const useFiles = create<FileStore>()(
               if (error) {
                 console.error('❌ Error al insertar en Supabase:', error)
                 console.error('❌ Detalle del error:', error.message)
+                // Si falla, remover el archivo temporal del estado
+                set({ files: files.filter(f => f.id !== fileData.id) })
               } else {
                 console.log('✅ Archivo sincronizado con servidor:', data)
-                // Actualizar el archivo local con el ID real de Supabase
+                // Reemplazar el archivo temporal con el real de Supabase
                 if (data && data[0]) {
+                  const realFile = data[0]
+                  console.log('🔄 Reemplazando archivo temporal', id, 'con UUID real', realFile.id)
                   const updatedFiles = files.map(f => 
-                    f.id === id ? { ...f, id: data[0].id } : f
+                    f.id === id ? realFile : f
                   )
-                  set({ files: [...updatedFiles, data[0]] })
+                  set({ files: updatedFiles })
                 }
               }
             } catch (err) {
@@ -176,22 +189,32 @@ export const useFiles = create<FileStore>()(
 
       deleteFile: async (id) => {
         try {
+          console.log('🗑️ deleteFile iniciado para ID:', id)
+          
+          // Sincronizar con servidor si está disponible
+          if (supabase && isSupabaseConfigured()) {
+            console.log('🔍 Intentando eliminar de Supabase...')
+            const { error: deleteError } = await supabase
+              .from('shared_files')
+              .delete()
+              .eq('id', id)
+            
+            if (deleteError) {
+              console.error('❌ Error al eliminar de Supabase:', deleteError)
+              set({ error: 'Error al eliminar archivo del servidor' })
+              return
+            }
+            console.log('✅ Archivo eliminado del servidor')
+          }
+
+          // Actualizar estado local solo si la eliminación en servidor fue exitosa
           const { files } = get()
           const updatedFiles = files.filter(file => file.id !== id)
           set({ files: updatedFiles })
-
-          // Sincronizar con servidor si está disponible
-          if (supabase && isSupabaseConfigured()) {
-            try {
-              await supabase.from('shared_files').delete().eq('id', id)
-              console.log('✅ Archivo eliminado del servidor')
-            } catch {
-              console.log('📱 Archivo eliminado localmente')
-            }
-          }
+          console.log('✅ Archivo eliminado del estado local')
 
         } catch (error) {
-          console.error('Error deleting file:', error)
+          console.error('❌ Error general en deleteFile:', error)
           set({ error: 'Error al eliminar archivo' })
         }
       },

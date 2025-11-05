@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
-import { X, History, Calendar, User, FileText, MessageSquare, CheckSquare, Folder } from 'lucide-react';
+import { X, History, Calendar, User, FileText, MessageSquare, CheckSquare, Folder, Trash2 } from 'lucide-react';
 import { useActivityLog } from '@/hooks/useActivityLog';
+import { useFiles } from '@/hooks/useFiles';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -20,6 +21,20 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
   entityName
 }) => {
   const { activities, fetchActivities, loading } = useActivityLog();
+  const { deleteFile } = useFiles();
+
+  const handleDeleteFile = async (fileId: string, fileName: string) => {
+    console.log('🗑️ Intentando eliminar archivo:', { fileId, fileName });
+    if (confirm(`¿Estás seguro de que deseas eliminar "${fileName}"?`)) {
+      console.log('✅ Usuario confirmó eliminación');
+      await deleteFile(fileId);
+      console.log('🔄 Actualizando historial...');
+      // Actualizar el historial después de eliminar
+      fetchActivities({ entityType, entityId, limit: 100 });
+    } else {
+      console.log('❌ Usuario canceló eliminación');
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -293,16 +308,29 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
 
                     {/* Contenido */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-gray-900">
-                          {activity.user_name}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getActionColor(activity.action_type)}`}>
-                          {getActionLabel(activity.action_type)}
-                        </span>
-                        <span className="text-gray-500 text-xs">
-                          {getEntityLabel(activity.entity_type)}
-                        </span>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-gray-900">
+                            {activity.user_name}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getActionColor(activity.action_type)}`}>
+                            {getActionLabel(activity.action_type)}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            {getEntityLabel(activity.entity_type)}
+                          </span>
+                        </div>
+                        
+                        {/* Botón de eliminar solo para archivos */}
+                        {activity.entity_type === 'file' && activity.entity_id && (
+                          <button
+                            onClick={() => handleDeleteFile(activity.entity_id!, activity.entity_name || 'este archivo')}
+                            className="flex-shrink-0 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                            title="Eliminar archivo"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
 
                       <p className="text-sm text-gray-700 mb-2">
