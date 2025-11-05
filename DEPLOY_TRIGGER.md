@@ -1,14 +1,13 @@
-# Deploy Trigger - 2025-11-02 v1.0.2
+# Deploy Trigger - 2025-11-05 v1.0.3
 
 This file forces a new Vercel deployment.
 
 ## Changes in this deploy:
-- Avatar functionality completely implemented
-- Image centering with Next.js Image component
-- Visual indicators for pending changes
-- Robust file validation
-- Online/offline upload support
-- Dynamic save button
-- Debug logging enabled
+- Stats cards added to Files section (Total, Archivos, Links, Tamaño)
+- File deletion from activity history
+- Fixed UUID handling (no more temp IDs)
+- Cleanup of temporary files in localStorage
+- Better error handling in file operations
+- Realtime updates for file changes
 
-Timestamp: 2025-11-02 ${new Date().toISOString()}
+Timestamp: 2025-11-05 23:30:00
