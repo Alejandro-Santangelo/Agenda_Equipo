@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useAppStore } from '@/lib/store'
-import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { useFiles } from '@/hooks/useFiles'
 import { useActivityLog } from '@/hooks/useActivityLog'
 import { offlineDB } from '@/lib/offline'
-import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { 
   Upload, 
   Link2, 
@@ -32,16 +31,19 @@ export default function FilesSection() {
   const [linkDescription, setLinkDescription] = useState('')
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   
+  const { files, fetchFiles, addFile, deleteFile } = useFiles()
+  
   const { 
-    sharedFiles, 
-    addSharedFile, 
-    removeSharedFile, 
     currentUser,
     teamMembers 
   } = useAppStore()
   
-  const { isOnline, addOperationToQueue } = useOfflineSync()
   const { logActivity } = useActivityLog()
+
+  // Cargar archivos al montar el componente
+  useEffect(() => {
+    fetchFiles()
+  }, [fetchFiles])
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!currentUser) return
@@ -80,8 +82,8 @@ export default function FilesSection() {
         setUploadProgress(prev => ({ ...prev, [fileId]: Math.min(progress, 100) }))
       }, 200)
 
-      // Guardar archivo
-      addSharedFile(newFile)
+      // Guardar archivo usando el hook
+      await addFile(newFile)
       await offlineDB.saveFile(newFile)
       
       // 📝 Registrar actividad de subida
@@ -99,25 +101,11 @@ export default function FilesSection() {
         }
       })
 
-      if (isOnline && supabase && isSupabaseConfigured()) {
-        try {
-          // TODO: Subir archivo real a Supabase Storage
-          await supabase.from('shared_files').insert([newFile])
-          toast.success(`${file.name} subido correctamente`)
-        } catch (error) {
-          console.error('Error uploading to server:', error)
-          await addOperationToQueue('file', newFile)
-          toast.success(`${file.name} guardado localmente - Se sincronizará cuando haya conexión`)
-        }
-      } else {
-        await addOperationToQueue('file', newFile)
-        const reason = !supabase ? 'Modo offline' : 'Se sincronizará cuando haya conexión'
-        toast.success(`${file.name} guardado localmente - ${reason}`)
-      }
+      toast.success(`${file.name} subido correctamente`)
     }
     
     setShowUploadModal(false)
-  }, [currentUser, teamMembers, addSharedFile, isOnline, addOperationToQueue, logActivity])
+  }, [currentUser, teamMembers, addFile, logActivity])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -146,23 +134,9 @@ export default function FilesSection() {
       comments: []
     }
 
-    addSharedFile(linkFile)
+    await addFile(linkFile)
     await offlineDB.saveFile(linkFile)
-
-    if (isOnline && supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('shared_files').insert([linkFile])
-        toast.success('Link compartido correctamente')
-      } catch (error) {
-        console.error('Error sharing link:', error)
-        await addOperationToQueue('file', linkFile)
-        toast.success('Link guardado localmente - Se sincronizará cuando haya conexión')
-      }
-    } else {
-      await addOperationToQueue('file', linkFile)
-      const reason = !supabase ? 'Modo offline' : 'Se sincronizará cuando haya conexión'
-      toast.success(`Link guardado localmente - ${reason}`)
-    }
+    toast.success('Link compartido correctamente')
 
     setLinkUrl('')
     setLinkDescription('')
@@ -188,13 +162,15 @@ export default function FilesSection() {
     return teamMembers.find(m => m.id === userId)?.name || 'Usuario'
   }
 
+  const [typeFilter, setTypeFilter] = useState<'all' | 'upload' | 'link'>('all')
+
   const getFileStats = () => {
-    const uploads = sharedFiles.filter(f => f.type === 'upload')
-    const links = sharedFiles.filter(f => f.type === 'link')
+    const uploads = files.filter(f => f.type === 'upload')
+    const links = files.filter(f => f.type === 'link')
     const totalSize = uploads.reduce((acc, file) => acc + (file.size || 0), 0)
     
     return {
-      total: sharedFiles.length,
+      total: files.length,
       uploads: uploads.length,
       links: links.length,
       totalSize
@@ -203,9 +179,7 @@ export default function FilesSection() {
 
   const stats = getFileStats()
 
-  const [typeFilter, setTypeFilter] = useState<'all' | 'upload' | 'link'>('all')
-
-  const filteredFiles = sharedFiles.filter(file => {
+  const filteredFiles = files.filter(file => {
     if (typeFilter === 'all') return true
     return file.type === typeFilter
   })
@@ -291,13 +265,13 @@ export default function FilesSection() {
           <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-xl border border-pink-200/50">
             <FileIcon size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {sharedFiles.length === 0 
+              {files.length === 0 
                 ? 'No hay archivos compartidos' 
                 : `No hay ${typeFilter === 'upload' ? 'archivos subidos' : 'links compartidos'}`
               }
             </h3>
             <p className="text-gray-600 mb-4">
-              {sharedFiles.length === 0 
+              {files.length === 0 
                 ? 'Sube tu primer archivo o comparte un link para comenzar'
                 : 'Prueba con otro filtro'
               }
@@ -381,7 +355,7 @@ export default function FilesSection() {
                     {currentUser?.role === 'admin' && (
                       <button
                         onClick={async () => {
-                          removeSharedFile(file.id)
+                          await deleteFile(file.id)
                           toast.success('Archivo eliminado')
                           
                           // 📝 Registrar actividad de eliminación
