@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/store'
 import { useFiles } from '@/hooks/useFiles'
 import { useActivityLog } from '@/hooks/useActivityLog'
 import { offlineDB } from '@/lib/offline'
+import { supabase, uploadFileToStorage, deleteFileFromStorage, extractStoragePath, isSupabaseConfigured } from '@/lib/supabase'
 import { 
   Upload, 
   Link2, 
@@ -42,8 +43,9 @@ export default function FilesSection() {
 
   // Cargar archivos al montar el componente
   useEffect(() => {
+    console.log('🔄 FilesSection montado, ejecutando fetchFiles...')
     fetchFiles()
-  }, [fetchFiles])
+  }, [])
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!currentUser) return
@@ -54,58 +56,85 @@ export default function FilesSection() {
       // Simular progreso de upload
       setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
       
-      // Objeto para Supabase (sin id, lo genera automáticamente)
-      const fileForSupabase = {
-        name: file.name,
-        type: 'upload' as const,
-        file_type: file.type || 'application/octet-stream',
-        size_bytes: file.size,
-        shared_by: currentUser.id
-      }
-      
-      // Objeto temporal local (con id temporal para mostrar en UI)
-      const newFile = {
-        id: fileId,
-        ...fileForSupabase,
-        created_at: new Date().toISOString()
-      }
-
-      // Simular progreso
-      let progress = 0
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 30
-        if (progress >= 100) {
-          progress = 100
-          clearInterval(progressInterval)
+      try {
+        // 📤 SUBIR ARCHIVO A SUPABASE STORAGE
+        console.log('📤 Subiendo archivo a Supabase Storage...')
+        const uploadResult = await uploadFileToStorage(file, currentUser.id)
+        
+        if (!uploadResult) {
+          toast.error('Error al subir archivo a Storage')
           setUploadProgress(prev => {
             const updated = { ...prev }
             delete updated[fileId]
             return updated
           })
+          continue
         }
-        setUploadProgress(prev => ({ ...prev, [fileId]: Math.min(progress, 100) }))
-      }, 200)
 
-      // Guardar archivo usando el hook
-      await addFile(newFile)
-      await offlineDB.saveFile(newFile)
-      
-      // 📝 Registrar actividad de subida
-      await logActivity({
-        user_id: currentUser.id,
-        user_name: currentUser.name,
-        action_type: 'upload',
-        entity_type: 'file',
-        entity_id: fileId,
-        entity_name: file.name,
-        description: `${currentUser.name} subió el archivo "${file.name}"`,
-        metadata: {
-          file_type: file.type,
-          size: file.size
+        // Simular progreso visual
+        let progress = 0
+        const progressInterval = setInterval(() => {
+          progress += Math.random() * 30
+          if (progress >= 100) {
+            progress = 100
+            clearInterval(progressInterval)
+            setUploadProgress(prev => {
+              const updated = { ...prev }
+              delete updated[fileId]
+              return updated
+            })
+          }
+          setUploadProgress(prev => ({ ...prev, [fileId]: Math.min(progress, 100) }))
+        }, 200)
+
+        // Objeto para Supabase con URL real
+        const fileForSupabase = {
+          name: file.name,
+          type: 'upload' as const,
+          file_type: file.type || 'application/octet-stream',
+          size_bytes: file.size,
+          shared_by: currentUser.id,
+          url: uploadResult.url // ✅ URL REAL de Supabase Storage
         }
-      })
+        
+        // Objeto temporal local (con id temporal para mostrar en UI)
+        const newFile = {
+          id: fileId,
+          ...fileForSupabase,
+          created_at: new Date().toISOString()
+        }
 
-      toast.success(`${file.name} subido correctamente`)
+        // Guardar archivo usando el hook y obtener UUID real
+        const realFileId = await addFile(newFile)
+        await offlineDB.saveFile(newFile)
+        
+        // 📝 Registrar actividad de subida con UUID real
+        await logActivity({
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action_type: 'upload',
+          entity_type: 'file',
+          entity_id: realFileId || fileId, // Usar UUID real si está disponible
+          entity_name: file.name,
+          description: `${currentUser.name} subió el archivo "${file.name}"`,
+          metadata: {
+            file_type: file.type,
+            size: file.size,
+            url: uploadResult.url // Incluir URL en metadata
+          }
+        })
+
+        toast.success(`${file.name} subido correctamente`)
+        
+      } catch (error) {
+        console.error('❌ Error al procesar archivo:', error)
+        toast.error(`Error al subir ${file.name}`)
+        setUploadProgress(prev => {
+          const updated = { ...prev }
+          delete updated[fileId]
+          return updated
+        })
+      }
     }
     
     setShowUploadModal(false)
@@ -340,12 +369,92 @@ export default function FilesSection() {
                     ) : (
                       <>
                         <button
+                          onClick={async () => {
+                            if (file.url) {
+                              const fileExtension = file.name.split('.').pop()?.toLowerCase()
+                              const isPDF = fileExtension === 'pdf'
+                              const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension || '')
+                              const isOfficeDoc = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension || '')
+                              
+                              // Para PDFs e imágenes: mostrar en modal con iframe
+                              if (isPDF || isImage) {
+                                const modal = document.createElement('div')
+                                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;'
+                                modal.onclick = (e) => {
+                                  if (e.target === modal) document.body.removeChild(modal)
+                                }
+                                
+                                const closeBtn = document.createElement('button')
+                                closeBtn.textContent = '✕ Cerrar'
+                                closeBtn.style.cssText = 'position:absolute;top:20px;right:20px;background:white;color:black;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:bold;z-index:10000;'
+                                closeBtn.onclick = () => document.body.removeChild(modal)
+                                
+                                if (isImage) {
+                                  const img = document.createElement('img')
+                                  img.src = file.url
+                                  img.style.cssText = 'max-width:90%;max-height:90%;border-radius:8px;'
+                                  modal.appendChild(closeBtn)
+                                  modal.appendChild(img)
+                                } else {
+                                  // Para PDFs: usar objeto embed con fallback a nueva pestaña
+                                  const embed = document.createElement('embed')
+                                  embed.src = file.url + '#toolbar=1&navpanes=1&scrollbar=1'
+                                  embed.type = 'application/pdf'
+                                  embed.style.cssText = 'width:90%;height:90%;border:none;border-radius:8px;background:white;'
+                                  
+                                  // Si el embed falla, agregar botón para abrir en nueva pestaña
+                                  embed.onerror = () => {
+                                    const errorMsg = document.createElement('div')
+                                    errorMsg.style.cssText = 'color:white;font-size:18px;text-align:center;'
+                                    errorMsg.innerHTML = `
+                                      <p>No se pudo cargar el PDF en el modal</p>
+                                      <button onclick="window.open('${file.url}', '_blank')" style="margin-top:20px;padding:12px 24px;background:white;color:black;border:none;border-radius:8px;cursor:pointer;font-size:16px;">
+                                        Abrir en nueva pestaña
+                                      </button>
+                                    `
+                                    modal.appendChild(errorMsg)
+                                  }
+                                  
+                                  modal.appendChild(closeBtn)
+                                  modal.appendChild(embed)
+                                }
+                                
+                                document.body.appendChild(modal)
+                              } 
+                              // Para documentos Office: usar Google Docs Viewer
+                              else if (isOfficeDoc) {
+                                const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`
+                                window.open(viewerUrl, '_blank')
+                                toast.success('Abriendo en visor de documentos...')
+                              }
+                              // Para todo lo demás: abrir en nueva pestaña
+                              else {
+                                window.open(file.url, '_blank')
+                              }
+                            } else {
+                              toast.error('URL del archivo no disponible')
+                            }
+                          }}
                           className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Vista previa"
                         >
                           <Eye size={16} />
                         </button>
                         <button
+                          onClick={() => {
+                            if (file.url) {
+                              const link = document.createElement('a')
+                              link.href = file.url
+                              link.download = file.name
+                              link.target = '_blank'
+                              document.body.appendChild(link)
+                              link.click()
+                              document.body.removeChild(link)
+                              toast.success('Descargando archivo...')
+                            } else {
+                              toast.error('URL del archivo no disponible')
+                            }
+                          }}
                           className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Descargar"
                         >
@@ -357,23 +466,33 @@ export default function FilesSection() {
                     {currentUser?.role === 'admin' && (
                       <button
                         onClick={async () => {
-                          await deleteFile(file.id)
-                          toast.success('Archivo eliminado')
-                          
-                          // 📝 Registrar actividad de eliminación
-                          await logActivity({
-                            user_id: currentUser.id,
-                            user_name: currentUser.name,
-                            action_type: 'delete',
-                            entity_type: 'file',
-                            entity_id: file.id,
-                            entity_name: file.name,
-                            description: `${currentUser.name} eliminó el archivo "${file.name}"`,
-                            metadata: {
-                              file_type: file.file_type,
-                              size: file.size_bytes
+                          if (!confirm(`¿Estás seguro de que deseas eliminar "${file.name}"?`)) {
+                            return
+                          }
+
+                          // 🗑️ Si es un archivo subido (no link), eliminar de Storage
+                          if (file.type === 'upload' && file.url) {
+                            const storagePath = extractStoragePath(file.url)
+                            if (storagePath) {
+                              console.log('🗑️ Eliminando archivo de Storage:', storagePath)
+                              await deleteFileFromStorage(storagePath)
                             }
-                          })
+                          }
+
+                          // Eliminar de base de datos (shared_files)
+                          await deleteFile(file.id)
+                          
+                          // 🗑️ Eliminar también del historial (activity_log)
+                          if (supabase && isSupabaseConfigured()) {
+                            console.log('🗑️ Eliminando actividades del historial...')
+                            await supabase
+                              .from('activity_log')
+                              .delete()
+                              .eq('entity_type', 'file')
+                              .eq('entity_id', file.id)
+                          }
+                          
+                          toast.success('Archivo eliminado')
                         }}
                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"

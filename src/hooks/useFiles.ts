@@ -37,7 +37,7 @@ interface FileStore {
   
   // Acciones
   fetchFiles: () => Promise<void>
-  addFile: (file: SharedFile) => Promise<void>
+  addFile: (file: SharedFile) => Promise<string | null>
   updateFile: (id: string, updates: Partial<SharedFile>) => Promise<void>
   deleteFile: (id: string) => Promise<void>
   
@@ -103,7 +103,7 @@ export const useFiles = create<FileStore>()(
         }
       },
 
-      addFile: async (fileData) => {
+      addFile: async (fileData): Promise<string | null> => {
         try {
           console.log('🔍 addFile iniciado con:', fileData)
           
@@ -124,36 +124,51 @@ export const useFiles = create<FileStore>()(
               const { data, error } = await supabase
                 .from('shared_files')
                 .insert([dataForSupabase])
-                .select()
+                .select('*') // Seleccionar TODOS los campos incluyendo URL
               
               if (error) {
                 console.error('❌ Error al insertar en Supabase:', error)
                 console.error('❌ Detalle del error:', error.message)
                 // Si falla, remover el archivo temporal del estado
                 set({ files: files.filter(f => f.id !== fileData.id) })
+                return null
               } else {
                 console.log('✅ Archivo sincronizado con servidor:', data)
+                console.log('📄 Datos del archivo desde Supabase:', data[0])
                 // Reemplazar el archivo temporal con el real de Supabase
                 if (data && data[0]) {
                   const realFile = data[0]
                   console.log('🔄 Reemplazando archivo temporal', id, 'con UUID real', realFile.id)
-                  const updatedFiles = files.map(f => 
+                  console.log('🔗 URL del archivo:', realFile.url)
+                  
+                  // Obtener el estado actualizado para evitar condiciones de carrera
+                  const { files: currentFiles } = get()
+                  const updatedFiles = currentFiles.map(f => 
                     f.id === id ? realFile : f
                   )
                   set({ files: updatedFiles })
+                  
+                  console.log('✅ Estado actualizado, archivos actuales:', updatedFiles.length)
+                  
+                  return realFile.id // ✅ Retornar UUID real
                 }
+                return null
               }
             } catch (err) {
               console.error('❌ Excepción al insertar archivo:', err)
               console.log('📱 Archivo guardado localmente')
+              return null
             }
           } else {
             console.log('⚠️ Supabase no configurado, archivo solo local')
           }
 
+          return null
+
         } catch (error) {
           console.error('❌ Error general en addFile:', error)
           set({ error: 'Error al agregar archivo' })
+          return null
         }
       },
 
@@ -243,15 +258,19 @@ if (typeof window !== 'undefined' && supabase && isSupabaseConfigured()) {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'shared_files' },
       (payload) => {
+        console.log('📡 Evento Realtime recibido:', payload.eventType, payload)
         const store = useFiles.getState()
         
         if (payload.eventType === 'INSERT') {
           const newFile = payload.new as SharedFile
           const exists = store.files.find(f => f.id === newFile.id)
+          console.log('📥 INSERT detectado:', { nombre: newFile.name, existe: exists, archivosActuales: store.files.length })
           if (!exists) {
             const updatedFiles = [...store.files, newFile]
             useFiles.setState({ files: updatedFiles })
-            console.log('🔄 Nuevo archivo recibido en tiempo real:', newFile.name)
+            console.log('🔄 Nuevo archivo recibido en tiempo real:', newFile.name, '- Total archivos:', updatedFiles.length)
+          } else {
+            console.log('⚠️ Archivo ya existe en el estado, no se agrega')
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedFile = payload.new as SharedFile

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { X, History, Calendar, User, FileText, MessageSquare, CheckSquare, Folder, Trash2 } from 'lucide-react';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useFiles } from '@/hooks/useFiles';
+import { supabase, deleteFileFromStorage, extractStoragePath, isSupabaseConfigured } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -21,13 +22,44 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
   entityName
 }) => {
   const { activities, fetchActivities, loading } = useActivityLog();
-  const { deleteFile } = useFiles();
+  const { files, deleteFile } = useFiles();
 
   const handleDeleteFile = async (fileId: string, fileName: string) => {
     console.log('🗑️ Intentando eliminar archivo:', { fileId, fileName });
     if (confirm(`¿Estás seguro de que deseas eliminar "${fileName}"?`)) {
       console.log('✅ Usuario confirmó eliminación');
+      
+      // Buscar el archivo para obtener su URL
+      const file = files.find(f => f.id === fileId);
+      
+      // 🗑️ Si es un archivo subido (no link), eliminar de Storage
+      if (file && file.type === 'upload' && file.url) {
+        const storagePath = extractStoragePath(file.url);
+        if (storagePath) {
+          console.log('🗑️ Eliminando archivo de Storage:', storagePath);
+          await deleteFileFromStorage(storagePath);
+        }
+      }
+      
+      // Eliminar de base de datos (shared_files)
       await deleteFile(fileId);
+      
+      // 🗑️ Eliminar también del historial (activity_log)
+      if (supabase && isSupabaseConfigured()) {
+        console.log('🗑️ Eliminando actividades del historial...');
+        const { error } = await supabase
+          .from('activity_log')
+          .delete()
+          .eq('entity_type', 'file')
+          .eq('entity_id', fileId);
+        
+        if (error) {
+          console.error('❌ Error al eliminar del historial:', error);
+        } else {
+          console.log('✅ Actividades eliminadas del historial');
+        }
+      }
+      
       console.log('🔄 Actualizando historial...');
       // Actualizar el historial después de eliminar
       fetchActivities({ entityType, entityId, limit: 100 });
@@ -47,15 +79,24 @@ const ActivityHistoryModal: React.FC<ActivityHistoryModalProps> = ({
   }, [isOpen, entityType, entityId, fetchActivities]);
 
   const filteredActivities = useMemo(() => {
+    let filtered = activities;
+    
     if (entityType && entityId) {
-      return activities.filter(
+      filtered = activities.filter(
         (a) => a.entity_type === entityType && a.entity_id === entityId
       );
     } else if (entityType) {
-      return activities.filter((a) => a.entity_type === entityType);
+      filtered = activities.filter((a) => a.entity_type === entityType);
+      
+      // Para archivos, solo mostrar los que todavía existen en shared_files
+      if (entityType === 'file') {
+        const existingFileIds = new Set(files.map(f => f.id));
+        filtered = filtered.filter(a => existingFileIds.has(a.entity_id));
+      }
     }
-    return activities;
-  }, [activities, entityType, entityId]);
+    
+    return filtered;
+  }, [activities, entityType, entityId, files]);
 
   const getEntityIcon = (type: string) => {
     switch (type) {
