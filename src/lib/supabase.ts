@@ -38,14 +38,22 @@ export interface SharedFile {
   id: string
   name: string
   type: 'upload' | 'link'
+  file_type: string
+  url?: string
+  size_bytes?: number
+  shared_by: string
+  created_at: string
+  description?: string
+  tags?: string[]
+  download_count?: number
+  
+  // Campos legacy para compatibilidad
   file_url?: string
   drive_url?: string
-  file_type: string
   size?: number
-  uploaded_by: string
-  shared_with: string[]
-  created_at: string
-  comments: FileComment[]
+  uploaded_by?: string
+  shared_with?: string[]
+  comments?: FileComment[]
 }
 
 export interface FileComment {

@@ -9,11 +9,19 @@ export interface SharedFile {
   name: string
   type: 'upload' | 'link'
   file_type: string
+  size_bytes?: number
+  url?: string
+  shared_by: string
+  created_at: string
+  description?: string
+  tags?: string[]
+  download_count?: number
+  
+  // Alias para compatibilidad con código existente
   size?: number
   drive_url?: string
-  uploaded_by: string
-  shared_with: string[]
-  created_at: string
+  uploaded_by?: string
+  shared_with?: string[]
   comments?: Array<{
     id: string
     user_id: string
@@ -47,31 +55,38 @@ export const useFiles = create<FileStore>()(
 
       fetchFiles: async () => {
         try {
+          console.log('🔍 fetchFiles iniciado')
           set({ loading: true, error: null })
           
           // Si hay Supabase configurado, intentar sincronizar
           if (supabase && isSupabaseConfigured()) {
+            console.log('🔍 Supabase configurado, consultando shared_files...')
             try {
               const { data: serverFiles, error } = await supabase
                 .from('shared_files')
                 .select('*')
                 .order('created_at', { ascending: false })
 
+              console.log('🔍 Respuesta de Supabase:', { serverFiles, error })
+
               if (!error && serverFiles) {
                 set({ files: serverFiles })
                 console.log('✅ Archivos sincronizados desde servidor:', serverFiles.length)
+                console.log('📄 Archivos:', serverFiles)
               } else if (error) {
-                console.error('Error al cargar archivos desde Supabase:', error)
+                console.error('❌ Error al cargar archivos desde Supabase:', error)
               }
             } catch (err) {
-              console.error('Error en fetchFiles:', err)
+              console.error('❌ Excepción en fetchFiles:', err)
               console.log('📱 Archivos: usando datos locales')
             }
+          } else {
+            console.log('⚠️ Supabase no configurado o no disponible')
           }
           
           set({ loading: false })
         } catch (error) {
-          console.error('Error fetching files:', error)
+          console.error('❌ Error general en fetchFiles:', error)
           set({ 
             error: 'Error al cargar archivos',
             loading: false 
@@ -81,6 +96,8 @@ export const useFiles = create<FileStore>()(
 
       addFile: async (fileData) => {
         try {
+          console.log('🔍 addFile iniciado con:', fileData)
+          
           // Agregar localmente primero (inmediato)
           const { files } = get()
           const updatedFiles = [...files, fileData]
@@ -89,15 +106,40 @@ export const useFiles = create<FileStore>()(
           // Sincronizar con servidor si está disponible
           if (supabase && isSupabaseConfigured()) {
             try {
-              await supabase.from('shared_files').insert([fileData])
-              console.log('✅ Archivo sincronizado con servidor')
-            } catch {
+              console.log('🔍 Insertando en Supabase shared_files...')
+              
+              // Preparar datos para Supabase (sin id ni created_at, los genera automáticamente)
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { id, created_at, ...dataForSupabase } = fileData
+              
+              const { data, error } = await supabase
+                .from('shared_files')
+                .insert([dataForSupabase])
+                .select()
+              
+              if (error) {
+                console.error('❌ Error al insertar en Supabase:', error)
+                console.error('❌ Detalle del error:', error.message)
+              } else {
+                console.log('✅ Archivo sincronizado con servidor:', data)
+                // Actualizar el archivo local con el ID real de Supabase
+                if (data && data[0]) {
+                  const updatedFiles = files.map(f => 
+                    f.id === id ? { ...f, id: data[0].id } : f
+                  )
+                  set({ files: [...updatedFiles, data[0]] })
+                }
+              }
+            } catch (err) {
+              console.error('❌ Excepción al insertar archivo:', err)
               console.log('📱 Archivo guardado localmente')
             }
+          } else {
+            console.log('⚠️ Supabase no configurado, archivo solo local')
           }
 
         } catch (error) {
-          console.error('Error adding file:', error)
+          console.error('❌ Error general en addFile:', error)
           set({ error: 'Error al agregar archivo' })
         }
       },

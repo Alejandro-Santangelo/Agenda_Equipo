@@ -54,16 +54,20 @@ export default function FilesSection() {
       // Simular progreso de upload
       setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
       
-      const newFile = {
-        id: fileId,
+      // Objeto para Supabase (sin id, lo genera automáticamente)
+      const fileForSupabase = {
         name: file.name,
         type: 'upload' as const,
         file_type: file.type || 'application/octet-stream',
-        size: file.size,
-        uploaded_by: currentUser.id,
-        shared_with: teamMembers.map(m => m.id),
-        created_at: new Date().toISOString(),
-        comments: []
+        size_bytes: file.size,
+        shared_by: currentUser.id
+      }
+      
+      // Objeto temporal local (con id temporal para mostrar en UI)
+      const newFile = {
+        id: fileId,
+        ...fileForSupabase,
+        created_at: new Date().toISOString()
       }
 
       // Simular progreso
@@ -105,7 +109,7 @@ export default function FilesSection() {
     }
     
     setShowUploadModal(false)
-  }, [currentUser, teamMembers, addFile, logActivity])
+  }, [currentUser, addFile, logActivity])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -123,15 +127,13 @@ export default function FilesSection() {
     if (!linkUrl || !currentUser) return
 
     const linkFile = {
-      id: `link-${Date.now()}`,
+      id: `link-${Date.now()}`, // ID temporal para UI
       name: linkDescription || linkUrl,
       type: 'link' as const,
-      drive_url: linkUrl,
+      url: linkUrl,
       file_type: 'link',
-      uploaded_by: currentUser.id,
-      shared_with: teamMembers.map(m => m.id),
-      created_at: new Date().toISOString(),
-      comments: []
+      shared_by: currentUser.id,
+      created_at: new Date().toISOString()
     }
 
     await addFile(linkFile)
@@ -167,7 +169,7 @@ export default function FilesSection() {
   const getFileStats = () => {
     const uploads = files.filter(f => f.type === 'upload')
     const links = files.filter(f => f.type === 'link')
-    const totalSize = uploads.reduce((acc, file) => acc + (file.size || 0), 0)
+    const totalSize = uploads.reduce((acc, file) => acc + (file.size_bytes || 0), 0)
     
     return {
       total: files.length,
@@ -293,7 +295,7 @@ export default function FilesSection() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-gray-900 truncate">{file.name}</h4>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>Por {getUserName(file.uploaded_by)}</span>
+                        <span>Por {getUserName(file.shared_by)}</span>
                         <span>•</span>
                         {file.created_at && (() => {
                           const createdDate = new Date(file.created_at);
@@ -301,10 +303,10 @@ export default function FilesSection() {
                             ? <span>{format(createdDate, 'dd MMM yyyy', { locale: es })}</span>
                             : null;
                         })()}
-                        {file.size && (
+                        {file.size_bytes && (
                           <>
                             <span>•</span>
-                            <span>{formatFileSize(file.size)}</span>
+                            <span>{formatFileSize(file.size_bytes)}</span>
                           </>
                         )}
                       </div>
@@ -329,7 +331,7 @@ export default function FilesSection() {
                   <div className="flex items-center gap-1 ml-4">
                     {file.type === 'link' ? (
                       <button
-                        onClick={() => window.open(file.drive_url, '_blank')}
+                        onClick={() => window.open(file.url, '_blank')}
                         className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Abrir link"
                       >
@@ -369,7 +371,7 @@ export default function FilesSection() {
                             description: `${currentUser.name} eliminó el archivo "${file.name}"`,
                             metadata: {
                               file_type: file.file_type,
-                              size: file.size
+                              size: file.size_bytes
                             }
                           })
                         }}
